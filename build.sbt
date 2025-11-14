@@ -45,4 +45,13 @@ ThisBuild / crossScalaVersions += "2.12.20"
 
 ThisBuild / libraryDependencies ++= TestBundle % Test
 
-val root = (project in file(".")).enablePlugins(ScoverageSummaryPlugin).settings(name := ProjectName)
+val root = (project in file("."))
+  .enablePlugins(ScoverageSummaryPlugin)
+  .settings(
+    name := ProjectName,
+    libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, 12)) => Seq(ScalaReflect212)
+      case Some((2, 13)) => Seq(ScalaReflect213)
+      case _ => Nil
+    })
+  )
