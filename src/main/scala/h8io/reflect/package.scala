@@ -1,10 +1,7 @@
 package h8io
 
 package object reflect {
-  implicit def tpe[T](implicit typeTag: scala.reflect.runtime.universe.TypeTag[T]): Type[T] =
-    new Type[T] {
-      override private[reflect] val tag: scala.reflect.runtime.universe.TypeTag[T] = typeTag
-    }
+  implicit def tpe[T](implicit tag: scala.reflect.runtime.universe.TypeTag[T]): Type[T] = Type(tag)
 
   type Invariant[T] = Type[T]
 }

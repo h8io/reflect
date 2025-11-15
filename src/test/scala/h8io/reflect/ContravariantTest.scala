@@ -80,4 +80,18 @@ class ContravariantTest extends AnyFlatSpec with Matchers {
     (-implicitly[Type[String => Unit]]).accepts(implicitly[Type[PartialFunction[Nothing, Unit]]]) shouldBe false
     (-implicitly[Type[CharSequence => Unit]]).accepts(implicitly[Type[PartialFunction[String, Unit]]]) shouldBe false
   }
+
+  "Unary +" should "return object itself" in {
+    val variant = +implicitly[Type[String]]
+    (+variant) should be theSameInstanceAs variant
+  }
+
+  "Unary -" should "a Covariant instance" in {
+    val tp = implicitly[Type[String]]
+    (-Contravariant(tp)) shouldBe Covariant(tp)
+  }
+
+  "toString" should "return the correct string" in {
+    (+implicitly[Type[String]]).toString shouldBe "+String"
+  }
 }

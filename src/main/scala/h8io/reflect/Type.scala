@@ -8,9 +8,7 @@ sealed trait Variant[T] {
   def unary_- : Variant[T]
 }
 
-trait Type[T] extends Variant[T] {
-  private[reflect] val tag: scala.reflect.runtime.universe.TypeTag[T]
-
+final case class Type[T](private val tag: scala.reflect.runtime.universe.TypeTag[T]) extends Variant[T] {
   final def <:<(that: Type[?]): Boolean = tag.tpe.dealias <:< that.tag.tpe.dealias
 
   @inline final def =:=(that: Type[?]): Boolean = tag.tpe.dealias =:= that.tag.tpe.dealias

@@ -227,12 +227,12 @@ class TypeTest extends AnyFlatSpec with Matchers {
     implicitly[Type[CharSequence => Unit]].accepts(implicitly[Type[PartialFunction[String, Unit]]]) shouldBe false
   }
 
-  "+" should "transform a type to a covariant one" in {
+  "Unary +" should "transform a type to a covariant one" in {
     val tp = implicitly[Type[String]]
     +tp shouldBe Covariant(tp)
   }
 
-  "-" should "transform a type to a contravariant one" in {
+  "Unary -" should "transform a type to a contravariant one" in {
     val tp = implicitly[Type[String]]
     -tp shouldBe Contravariant(tp)
   }
