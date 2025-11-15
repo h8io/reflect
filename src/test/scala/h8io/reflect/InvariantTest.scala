@@ -263,6 +263,12 @@ class InvariantTest extends AnyFlatSpec with Matchers {
       Seq(Contravariant(implicitly[Type[Int]]), Covariant(implicitly[Type[Long]]))
   }
 
+  "hashCode" should "return the same value for equal types" in {
+    implicitly[Type[Any]].hashCode shouldBe implicitly[Type[Any]].hashCode
+    implicitly[Type[String]].hashCode shouldBe implicitly[Type[String]].hashCode
+    implicitly[Type[List[AnyRef]]].hashCode shouldBe implicitly[Type[List[AnyRef]]].hashCode
+  }
+
   "toString" should "return the type name" in {
     implicitly[Type[Any]].toString shouldBe "Any"
     implicitly[Type[AnyVal]].toString shouldBe "AnyVal"
