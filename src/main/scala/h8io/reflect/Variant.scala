@@ -33,10 +33,11 @@ final class Invariant private[reflect] (private val tpe: universe.Type) extends 
 
   override def hashCode(): Int = tpe.hashCode()
 
-  override def equals(obj: Any): Boolean = obj match {
-    case that: Invariant => this =:= that
-    case _ => false
-  }
+  override def equals(obj: Any): Boolean =
+    obj match {
+      case that: Invariant => this =:= that
+      case _ => false
+    }
 }
 
 object Invariant {
