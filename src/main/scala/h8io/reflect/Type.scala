@@ -25,7 +25,7 @@ trait Type[T] extends Variant[T] {
 }
 
 object Invariant {
-  def apply[T](tp: Type[T]): Variant[T] = tp
+  def apply[T](tp: Type[T]): Invariant[T] = tp
 
   def unapply[T](tp: Type[T]): Option[Type[T]] = Some(tp)
 }
