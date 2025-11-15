@@ -247,6 +247,22 @@ class InvariantTest extends AnyFlatSpec with Matchers {
     -tp shouldBe Contravariant(tp)
   }
 
+  "parameters" should "return an empty list for a plain type" in {
+    implicitly[Type[Any]].parameters shouldBe empty
+    implicitly[Type[AnyVal]].parameters shouldBe empty
+    implicitly[Type[AnyRef]].parameters shouldBe empty
+    implicitly[Type[Int]].parameters shouldBe empty
+    implicitly[Type[String]].parameters shouldBe empty
+  }
+
+  it should "return the type parameters for a type with parameters" in {
+    implicitly[Type[List[Any]]].parameters should contain theSameElementsAs Seq(Covariant(implicitly[Type[Any]]))
+    implicitly[Type[Map[String, List[Int]]]].parameters should contain theSameElementsAs
+      Seq(implicitly[Type[String]], Covariant(implicitly[Type[List[Int]]]))
+    implicitly[Type[Int => Long]].parameters should contain theSameElementsAs
+      Seq(Contravariant(implicitly[Type[Int]]), Covariant(implicitly[Type[Long]]))
+  }
+
   "toString" should "return the type name" in {
     implicitly[Type[Any]].toString shouldBe "Any"
     implicitly[Type[AnyVal]].toString shouldBe "AnyVal"

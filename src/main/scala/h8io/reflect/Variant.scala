@@ -11,17 +11,17 @@ sealed trait Variant {
 }
 
 final class Invariant private[reflect] (private val tpe: universe.Type) extends Variant {
-  val parameters: Iterable[Variant] = tpe.dealias.typeParams.iterator.map { symbol =>
-    val tpSymbol = symbol.asType
-    val tp = new Invariant(tpSymbol.toType)
-    if (tpSymbol.isCovariant) Covariant(tp)
-    else if (tpSymbol.isContravariant) Contravariant(tp)
-    else tp
-  }.toList
+  val parameters: Iterable[Variant] =
+    (tpe.typeConstructor.typeParams.iterator zip tpe.typeArgs.iterator).map { case (symbol, arg) =>
+      val tp = new Invariant(arg)
+      if (symbol.asType.isCovariant) Covariant(tp)
+      else if (symbol.asType.isContravariant) Contravariant(tp)
+      else tp
+    }.toList
 
-  def <:<(that: Invariant): Boolean = tpe.dealias <:< that.tpe.dealias
+  def <:<(that: Invariant): Boolean = tpe <:< that.tpe
 
-  @inline def =:=(that: Invariant): Boolean = tpe.dealias =:= that.tpe.dealias
+  @inline def =:=(that: Invariant): Boolean = tpe =:= that.tpe
 
   def accepts(that: Type[?]): Boolean = this =:= that
 
@@ -29,7 +29,14 @@ final class Invariant private[reflect] (private val tpe: universe.Type) extends 
 
   def unary_- : Contravariant = Contravariant(this)
 
-  override def toString: String = tpe.dealias.toString
+  override def toString: String = tpe.toString
+
+  override def hashCode(): Int = tpe.hashCode()
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: Invariant => this =:= that
+    case _ => false
+  }
 }
 
 object Invariant {
