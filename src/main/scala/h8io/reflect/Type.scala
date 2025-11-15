@@ -9,17 +9,17 @@ sealed trait Variant[T] {
 }
 
 final case class Type[T](private val tag: scala.reflect.runtime.universe.TypeTag[T]) extends Variant[T] {
-  final def <:<(that: Type[?]): Boolean = tag.tpe.dealias <:< that.tag.tpe.dealias
+  def <:<(that: Type[?]): Boolean = tag.tpe.dealias <:< that.tag.tpe.dealias
 
-  @inline final def =:=(that: Type[?]): Boolean = tag.tpe.dealias =:= that.tag.tpe.dealias
+  @inline def =:=(that: Type[?]): Boolean = tag.tpe.dealias =:= that.tag.tpe.dealias
 
-  final def accepts(that: Type[?]): Boolean = this =:= that
+  def accepts(that: Type[?]): Boolean = this =:= that
 
-  override final def unary_+ : Covariant[T] = Covariant(this)
+  override def unary_+ : Covariant[T] = Covariant(this)
 
-  final def unary_- : Contravariant[T] = Contravariant(this)
+  def unary_- : Contravariant[T] = Contravariant(this)
 
-  override final def toString: String = tag.tpe.dealias.toString
+  override def toString: String = tag.tpe.dealias.toString
 }
 
 object Invariant {
