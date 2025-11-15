@@ -236,4 +236,17 @@ class TypeTest extends AnyFlatSpec with Matchers {
     val tp = implicitly[Type[String]]
     -tp shouldBe Contravariant(tp)
   }
+
+  "toString" should "return the type name" in {
+    implicitly[Type[Any]].toString shouldBe "Any"
+    implicitly[Type[AnyVal]].toString shouldBe "AnyVal"
+    implicitly[Type[AnyRef]].toString shouldBe "Object"
+    implicitly[Type[Int]].toString shouldBe "Int"
+    implicitly[Type[String]].toString shouldBe "String"
+    implicitly[Type[Integer]].toString shouldBe "Integer"
+    implicitly[Type[List[Int]]].toString shouldBe "List[Int]"
+    implicitly[Type[List[Integer]]].toString shouldBe "List[Integer]"
+    implicitly[Type[Integer => String]].toString shouldBe "Integer => String"
+    implicitly[Type[(Integer, String)]].toString shouldBe "(Integer, String)"
+  }
 }

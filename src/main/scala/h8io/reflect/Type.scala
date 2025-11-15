@@ -35,7 +35,7 @@ final case class Covariant[T](tp: Type[T]) extends Variant[T] {
 
   def unary_- : Contravariant[T] = Contravariant(tp)
 
-  override def toString: String = s"+${tp}"
+  override def toString: String = s"+$tp"
 }
 
 final case class Contravariant[T](tp: Type[T]) extends Variant[T] {
@@ -43,5 +43,5 @@ final case class Contravariant[T](tp: Type[T]) extends Variant[T] {
 
   def unary_- : Covariant[T] = Covariant(tp)
 
-  override def toString: String = s"-${tp}"
+  override def toString: String = s"-$tp"
 }
