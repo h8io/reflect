@@ -5,4 +5,6 @@ package object reflect {
     new Type[T] {
       override private[reflect] val tag: scala.reflect.runtime.universe.TypeTag[T] = typeTag
     }
+
+  type Invariant[T] = Type[T]
 }
