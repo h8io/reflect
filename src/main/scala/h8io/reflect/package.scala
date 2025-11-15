@@ -1,7 +1,7 @@
 package h8io
 
 package object reflect {
-  implicit def tpe[T](implicit tag: scala.reflect.runtime.universe.TypeTag[T]): Type[T] = Type(tag)
+  type Type[T] = Invariant
 
-  type Invariant[T] = Type[T]
+  implicit def tpe[T](implicit tag: scala.reflect.runtime.universe.TypeTag[T]): Type[T] = new Invariant(tag.tpe.dealias)
 }
