@@ -82,7 +82,7 @@ class ContravariantTest extends AnyFlatSpec with Matchers {
   }
 
   "Unary +" should "return object itself" in {
-    val variant = +implicitly[Type[String]]
+    val variant = -implicitly[Type[String]]
     (+variant) should be theSameInstanceAs variant
   }
 
@@ -92,6 +92,6 @@ class ContravariantTest extends AnyFlatSpec with Matchers {
   }
 
   "toString" should "return the correct string" in {
-    (+implicitly[Type[String]]).toString shouldBe "+String"
+    (-implicitly[Type[String]]).toString shouldBe "-String"
   }
 }
