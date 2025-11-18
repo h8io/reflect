@@ -189,6 +189,18 @@ class TypeTest extends AnyFlatSpec with Matchers {
     implicitly[Type[List[AnyRef]]].hashCode shouldBe implicitly[Type[List[AnyRef]]].hashCode
   }
 
+  "equals" should "should compare underlying objects" in {
+    implicitly[Type[Any]] == implicitly[Type[Any]] shouldBe true
+    implicitly[Type[Int]] == implicitly[Type[Int]] shouldBe true
+    implicitly[Type[String]] == implicitly[Type[String]] shouldBe true
+    implicitly[Type[List[AnyRef]]] == implicitly[Type[List[AnyRef]]] shouldBe true
+    implicitly[Type[List[AnyRef]]] == implicitly[Type[List[String]]] shouldBe false
+    implicitly[Type[List[String]]] == implicitly[Type[List[String]]] shouldBe true
+    implicitly[Type[List[String]]] == implicitly[Type[Seq[String]]] shouldBe false
+    implicitly[Type[List[AnyRef]]] == implicitly[Type[PartialFunction[String, Unit]]] shouldBe false
+    implicitly[Type[AnyRef]] == new Object() shouldBe false
+  }
+
   "toString" should "return the type name" in {
     implicitly[Type[Any]].toString shouldBe "Any"
     implicitly[Type[AnyVal]].toString shouldBe "AnyVal"

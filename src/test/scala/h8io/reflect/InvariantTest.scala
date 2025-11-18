@@ -80,4 +80,8 @@ class InvariantTest extends AnyFlatSpec with Matchers {
     (~implicitly[Type[String => Unit]]).accepts(implicitly[Type[PartialFunction[Nothing, Unit]]]) shouldBe false
     (~implicitly[Type[CharSequence => Unit]]).accepts(implicitly[Type[PartialFunction[String, Unit]]]) shouldBe false
   }
+
+  "toString" should "return the correct string" in {
+    (~implicitly[Type[List[String]]]).toString shouldBe "List[+String]"
+  }
 }
