@@ -2,8 +2,8 @@ package h8io.reflect
 
 import scala.reflect.runtime.universe
 
-final class Type[T] private[reflect] (private[reflect] val tpe: universe.Type) {
-  val parameters: Iterable[Variant[?]] =
+final class Type[T] private[reflect] (private val tpe: universe.Type) {
+  lazy val parameters: Iterable[Variant[?]] =
     (tpe.typeConstructor.typeParams.iterator zip tpe.typeArgs.iterator).map { case (symbol, arg) =>
       val tp = new Type[Any](arg)
       if (symbol.asType.isCovariant) Covariant(tp)
