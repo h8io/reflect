@@ -19,7 +19,7 @@ final class Type[T] private[reflect] (private val tpe: universe.Type) {
 
   def unary_+ : Covariant[T] = Covariant(this)
 
-  def unary_- : Variant[T] = Contravariant(this)
+  def unary_- : Contravariant[T] = Contravariant(this)
 
   override def hashCode(): Int = tpe.hashCode()
 
@@ -29,9 +29,15 @@ final class Type[T] private[reflect] (private val tpe: universe.Type) {
       case _ => false
     }
 
-  override def toString: String = {
+  override def toString: String = toString(parameters.iterator)
+
+  private def toString(parameters: Iterator[Variant[?]]): String = {
     val base = universe.show(tpe.typeConstructor)
     if (parameters.isEmpty) base
     else s"$base[${parameters.mkString(", ")}]"
   }
+
+  private[reflect] def toContravariantString: String = toString(parameters.iterator.map(-_))
+
+  private[reflect] def toInvariantString: String = toString(parameters.iterator.map(~_))
 }

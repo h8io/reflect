@@ -3,6 +3,7 @@ package h8io.reflect
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.time.Instant
 import java.util as ju
 
 class ContravariantTest extends AnyFlatSpec with Matchers {
@@ -82,6 +83,9 @@ class ContravariantTest extends AnyFlatSpec with Matchers {
   }
 
   "toString" should "return the correct string" in {
-    (-implicitly[Type[String]]).toString shouldBe "-String"
+    (-implicitly[Type[Instant => Long => String]]).toString shouldBe
+      "-Function1[+java.time.Instant, -Function1[+Long, -String]]"
+    (-implicitly[Type[(Instant => Long) => String]]).toString shouldBe
+      "-Function1[+Function1[-java.time.Instant, +Long], -String]"
   }
 }
