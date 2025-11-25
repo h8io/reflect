@@ -1,5 +1,7 @@
 package h8io
 
+import scala.reflect.runtime.universe
+
 package object reflect {
-  implicit def typeOf[T](implicit tag: scala.reflect.runtime.universe.TypeTag[T]): Type[T] = new Type(tag.tpe.dealias)
+  implicit def typeOf[T](implicit tag: universe.WeakTypeTag[T]): Type[T] = new Type(tag.tpe.dealias)
 }
