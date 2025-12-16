@@ -2,8 +2,7 @@ import h8io.sbt.dependencies.*
 import sbt.*
 
 object Dependencies {
-  val ScalaReflect212 = "org.scala-lang" % "scala-reflect" % "2.12.21"
-  val ScalaReflect213 = "org.scala-lang" % "scala-reflect" % "2.13.18"
+  val ScalaReflect = "org.scala-lang" % "scala-reflect"
 
   val TestBundle: Seq[ModuleID] =
     Seq(

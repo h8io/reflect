@@ -50,8 +50,7 @@ val root = (project in file("."))
   .settings(
     name := ProjectName,
     libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, 12)) => Seq(ScalaReflect212)
-      case Some((2, 13)) => Seq(ScalaReflect213)
+      case Some((2, _)) => Seq(ScalaReflect % scalaVersion.value % Provided)
       case _ => Nil
     })
   )
