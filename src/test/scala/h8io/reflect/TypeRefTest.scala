@@ -8,6 +8,8 @@ class TypeRefTest extends AnyFlatSpec with Matchers {
 
   "TypeRefTrait" should "be a TypeRef" in { TypeRefTrait shouldBe a[TypeRef[?]] }
 
+  "Type of String" should "be a TypeRef" in { implicitly[Type[String]] shouldBe a[TypeRef[?]] }
+
   "toString" should "produce a correct string representation" in {
     TypeRefTrait.toString shouldBe classOf[RefTrait].getName
   }
