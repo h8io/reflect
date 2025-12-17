@@ -4,7 +4,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class TypeValTest extends AnyFlatSpec with Matchers {
-  import types.*
+  import test.*
 
   "TypeValClass" should "be a TypeVal" in { TypeValClass shouldBe a[TypeVal[?]] }
 }

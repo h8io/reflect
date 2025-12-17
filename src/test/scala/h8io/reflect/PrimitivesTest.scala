@@ -9,7 +9,7 @@ import scala.runtime.BoxedUnit
 sealed abstract class PrimitiveSpec[T <: AnyVal, B <: AnyRef](repr: String, expected: Type[T])(
     implicit tp: Type[T], boxed: Type[B])
     extends AnyFlatSpec with Matchers with Inside {
-  import types.*
+  import test.*
 
   "implicit value" should "has a correct type" in {
     tp shouldBe a[Primitive[?, ?]]

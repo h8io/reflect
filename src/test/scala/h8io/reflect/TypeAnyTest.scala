@@ -5,7 +5,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class TypeAnyTest extends AnyFlatSpec with Matchers with Inside {
-  import types.*
+  import test.*
 
   "implicit value" should "has a correct type" in {
     implicitly[Type[Any]] should be theSameInstanceAs TypeAny

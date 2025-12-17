@@ -4,7 +4,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class TypeAnyLikeTest extends AnyFlatSpec with Matchers {
-  import types.*
+  import test.*
 
   "TypeUniversalTrait" should "be a TypeAnyLike" in { TypeUniversalTrait shouldBe a[TypeAnyLike[?]] }
 }

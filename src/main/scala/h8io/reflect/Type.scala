@@ -76,7 +76,7 @@ private final case class TypeVal[T <: AnyVal](tag: LightTypeTag) extends Type[T]
       case _ => false
     }
 
-  @inline def =:=(that: Type[?]): Boolean =
+  def =:=(that: Type[?]): Boolean =
     that match {
       case TypeVal(thatTag) => tag =:= thatTag
       case _ => false
@@ -89,12 +89,16 @@ private final case class TypeRef[T <: AnyRef](tag: LightTypeTag) extends Type[T]
   def <:<(that: Type[?]): Boolean =
     that match {
       case TypeAny | TypeAnyRef => true
-      case TypeRef(thatTag) => tag <:< thatTag
-      case TypeAnyLike(thatTag) => tag <:< thatTag
+      case TypeRef(thatTag) =>
+        println(s"TypeRef: tag: $tag, thatTag: $thatTag")
+        tag <:< thatTag
+      case TypeAnyLike(thatTag) =>
+        println(s"TypeAnyLike: tag: $tag, thatTag: $thatTag")
+        tag <:< thatTag
       case _ => false
     }
 
-  @inline def =:=(that: Type[?]): Boolean =
+  def =:=(that: Type[?]): Boolean =
     that match {
       case TypeRef(thatTag) => tag =:= thatTag
       case _ => false
@@ -111,7 +115,7 @@ private final case class TypeAnyLike[T](tag: LightTypeTag) extends Type[T] {
       case _ => false
     }
 
-  @inline def =:=(that: Type[?]): Boolean =
+  def =:=(that: Type[?]): Boolean =
     that match {
       case TypeAnyLike(thatTag) => tag =:= thatTag
       case _ => false

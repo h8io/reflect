@@ -5,7 +5,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class TypeNullTest extends AnyFlatSpec with Matchers with Inside {
-  import types.*
+  import test.*
 
   "implicit value" should "has a correct type" in {
     implicitly[Type[Null]] should be theSameInstanceAs TypeNull
