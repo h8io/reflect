@@ -49,8 +49,5 @@ val root = (project in file("."))
   .enablePlugins(ScoverageSummaryPlugin)
   .settings(
     name := ProjectName,
-    libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, _)) => Seq(ScalaReflect % scalaVersion.value % Provided)
-      case _ => Nil
-    })
+    libraryDependencies += IzumiReflect
   )

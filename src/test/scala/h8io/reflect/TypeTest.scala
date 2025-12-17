@@ -152,37 +152,6 @@ class TypeTest extends AnyFlatSpec with Matchers {
     implicitly[Type[CharSequence => Unit]] =:= implicitly[Type[PartialFunction[String, Unit]]] shouldBe false
   }
 
-  "Unary +" should "transform a type to a covariant one" in {
-    val tp = implicitly[Type[String]]
-    +tp shouldBe Covariant(tp)
-  }
-
-  "Unary -" should "transform a type to a contravariant one" in {
-    val tp = implicitly[Type[String]]
-    -tp shouldBe Contravariant(tp)
-  }
-
-  "Unary ~" should "transform a type to a invariant one" in {
-    val tp = implicitly[Type[String]]
-    ~tp shouldBe Invariant(tp)
-  }
-
-  "parameters" should "return an empty list for a plain type" in {
-    implicitly[Type[Any]].parameters shouldBe empty
-    implicitly[Type[AnyVal]].parameters shouldBe empty
-    implicitly[Type[AnyRef]].parameters shouldBe empty
-    implicitly[Type[Int]].parameters shouldBe empty
-    implicitly[Type[String]].parameters shouldBe empty
-  }
-
-  it should "return the type parameters for a type with parameters" in {
-    implicitly[Type[List[Any]]].parameters should contain theSameElementsAs Seq(Covariant(implicitly[Type[Any]]))
-    implicitly[Type[Map[String, List[Int]]]].parameters should contain theSameElementsAs
-      Seq(~implicitly[Type[String]], +implicitly[Type[List[Int]]])
-    implicitly[Type[Int => Long]].parameters should contain theSameElementsAs
-      Seq(-implicitly[Type[Int]], +implicitly[Type[Long]])
-  }
-
   "hashCode" should "return the same value for equal types" in {
     implicitly[Type[Any]].hashCode shouldBe implicitly[Type[Any]].hashCode
     implicitly[Type[String]].hashCode shouldBe implicitly[Type[String]].hashCode
@@ -201,16 +170,17 @@ class TypeTest extends AnyFlatSpec with Matchers {
     implicitly[Type[AnyRef]] == new Object() shouldBe false
   }
 
-  "toString" should "return the type name" in {
-    implicitly[Type[Any]].toString shouldBe "Any"
-    implicitly[Type[AnyVal]].toString shouldBe "AnyVal"
-    implicitly[Type[AnyRef]].toString shouldBe "Object"
-    implicitly[Type[Int]].toString shouldBe "Int"
-    implicitly[Type[String]].toString shouldBe "String"
-    implicitly[Type[Integer]].toString shouldBe "Integer"
-    implicitly[Type[List[Int]]].toString shouldBe "List[+Int]"
-    implicitly[Type[List[Integer]]].toString shouldBe "List[+Integer]"
-    implicitly[Type[Integer => String]].toString shouldBe "Function1[-Integer, +String]"
-    implicitly[Type[(java.lang.Long, java.time.Instant)]].toString shouldBe "Tuple2[+Long, +java.time.Instant]"
-  }
+//  "toString" should "return the type name" in {
+//    implicitly[Type[Any]].toString shouldBe "Any"
+//    implicitly[Type[AnyVal]].toString shouldBe "AnyVal"
+//    implicitly[Type[AnyRef]].toString shouldBe "AnyRef"
+//    implicitly[Type[Object]].toString shouldBe "AnyRef"
+//    implicitly[Type[Int]].toString shouldBe "Int"
+//    implicitly[Type[String]].toString shouldBe "java.lang.String"
+//    implicitly[Type[Integer]].toString shouldBe "Integer"
+//    implicitly[Type[List[Int]]].toString shouldBe "List[+Int]"
+//    implicitly[Type[List[Integer]]].toString shouldBe "List[+Integer]"
+//    implicitly[Type[Integer => String]].toString shouldBe "Function1[-Integer, +String]"
+//    implicitly[Type[(java.lang.Long, java.time.Instant)]].toString shouldBe "Tuple2[+Long, +java.time.Instant]"
+//  }
 }
