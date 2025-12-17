@@ -21,7 +21,7 @@ sealed abstract class PrimitiveSpec[T <: AnyVal, B <: AnyRef](repr: String, expe
   "boxed" should "return a correct Type" in
     inside(tp) { case p: Primitive[?, ?] => p.boxed shouldBe boxed }
 
-  "<:<" should "return true for the self type" in { tp <:< tp shouldBe true }
+  "<:<" should "be reflexive" in { tp <:< tp shouldBe true }
 
   it should "return false for other primitive types" in {
     for {
@@ -46,7 +46,7 @@ sealed abstract class PrimitiveSpec[T <: AnyVal, B <: AnyRef](repr: String, expe
 
   it should "return false for a value class" in { tp <:< TypeValClass shouldBe false }
 
-  "=:=" should "return true for the self type" in { tp =:= tp shouldBe true }
+  "=:=" should "be reflexive" in { tp =:= tp shouldBe true }
 
   it should "return false for other primitive types" in {
     for {

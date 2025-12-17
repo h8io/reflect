@@ -13,7 +13,7 @@ class TypeAnyTest extends AnyFlatSpec with Matchers with Inside {
 
   "toString" should "produce a correct string representation" in { TypeAny.toString shouldBe "Any" }
 
-  "<:<" should "return true for the self type" in { TypeAny <:< TypeAny shouldBe true }
+  "<:<" should "be reflexive" in { TypeAny <:< TypeAny shouldBe true }
 
   it should "return false for primitive types" in {
     for {
@@ -35,7 +35,7 @@ class TypeAnyTest extends AnyFlatSpec with Matchers with Inside {
 
   it should "return false for a value class" in { TypeAny <:< TypeValClass shouldBe false }
 
-  "=:=" should "return true for the self type" in { TypeAny =:= TypeAny shouldBe true }
+  "=:=" should "be reflexive" in { TypeAny =:= TypeAny shouldBe true }
 
   it should "return false for other primitive types" in {
     for {

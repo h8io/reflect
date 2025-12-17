@@ -15,7 +15,7 @@ class TypeAnyRefTest extends AnyFlatSpec with Matchers with Inside {
     TypeAnyRef.toString shouldBe "AnyRef"
   }
 
-  "<:<" should "return true for the self type" in {
+  "<:<" should "be reflexive" in {
     TypeAnyRef <:< TypeAny shouldBe true
   }
 
@@ -53,7 +53,7 @@ class TypeAnyRefTest extends AnyFlatSpec with Matchers with Inside {
     TypeAnyRef <:< TypeValClass shouldBe false
   }
 
-  "=:=" should "return true for the self type" in {
+  "=:=" should "be reflexive" in {
     TypeAnyRef =:= TypeAnyRef shouldBe true
   }
 

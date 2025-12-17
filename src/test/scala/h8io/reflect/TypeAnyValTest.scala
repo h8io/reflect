@@ -15,7 +15,7 @@ class TypeAnyValTest extends AnyFlatSpec with Matchers with Inside {
     TypeAnyVal.toString shouldBe "AnyVal"
   }
 
-  "<:<" should "return true for the self type" in {
+  "<:<" should "be reflexive" in {
     TypeAnyVal <:< TypeAnyVal shouldBe true
   }
 
@@ -53,7 +53,7 @@ class TypeAnyValTest extends AnyFlatSpec with Matchers with Inside {
     TypeAnyVal <:< TypeValClass shouldBe false
   }
 
-  "=:=" should "return true for the self type" in {
+  "=:=" should "be reflexive" in {
     TypeAnyVal =:= TypeAnyVal shouldBe true
   }
 
