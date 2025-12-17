@@ -4,13 +4,13 @@ object types {
   val Primitives: List[Primitive[?, ?]] =
     List(TypeBoolean, TypeByte, TypeShort, TypeInt, TypeLong, TypeFloat, TypeDouble, TypeChar, TypeUnit)
 
-  trait RefTrait
-
-  val TypeRefTrait: Type[RefTrait] = implicitly[Type[RefTrait]]
-
   trait UniversalTrait extends Any
 
   val TypeUniversalTrait: Type[UniversalTrait] = implicitly[Type[UniversalTrait]]
+
+  trait RefTrait extends UniversalTrait
+
+  val TypeRefTrait: Type[RefTrait] = implicitly[Type[RefTrait]]
 
   final class ValClass(val value: Int) extends AnyVal with UniversalTrait
 

@@ -72,6 +72,7 @@ private final case class TypeVal[T <: AnyVal](tag: LightTypeTag) extends Type[T]
     that match {
       case TypeAny | TypeAnyVal => true
       case TypeVal(thatTag) => tag <:< thatTag
+      case TypeAnyLike(thatTag) => tag <:< thatTag
       case _ => false
     }
 
@@ -89,6 +90,7 @@ private final case class TypeRef[T <: AnyRef](tag: LightTypeTag) extends Type[T]
     that match {
       case TypeAny | TypeAnyRef => true
       case TypeRef(thatTag) => tag <:< thatTag
+      case TypeAnyLike(thatTag) => tag <:< thatTag
       case _ => false
     }
 
@@ -118,13 +120,7 @@ private final case class TypeAnyLike[T](tag: LightTypeTag) extends Type[T] {
   override def toString: String = tag.scalaStyledRepr
 }
 
-private[reflect] sealed trait LowPriorityTypes {
-  implicit def typeVal[T <: AnyVal](implicit tag: LWeakTag[T]): Type[T] = TypeVal(tag.tag)
-  implicit def typeRef[T <: AnyRef](implicit tag: LWeakTag[T]): Type[T] = TypeRef(tag.tag)
-  implicit def typeAnyLike[T](implicit tag: LWeakTag[T]): Type[T] = TypeAnyLike(tag.tag)
-}
-
-object Type extends LowPriorityTypes {
+private[reflect] sealed trait Priority1Types {
   implicit val typeAny: Type[Any] = TypeAny
   implicit val typeAnyVal: Type[AnyVal] = TypeAnyVal
   implicit val typeAnyRef: Type[AnyRef] = TypeAnyRef
@@ -141,3 +137,14 @@ object Type extends LowPriorityTypes {
   implicit val typeChar: Type[Char] = TypeChar
   implicit val typeUnit: Type[Unit] = TypeUnit
 }
+
+private[reflect] sealed trait Priority2Types {
+  implicit def typeVal[T <: AnyVal](implicit tag: LWeakTag[T]): Type[T] = TypeVal(tag.tag)
+  implicit def typeRef[T <: AnyRef](implicit tag: LWeakTag[T]): Type[T] = TypeRef(tag.tag)
+}
+
+private[reflect] sealed trait Priority3Types {
+  implicit def typeAnyLike[T](implicit tag: LWeakTag[T]): Type[T] = TypeAnyLike(tag.tag)
+}
+
+object Type extends Priority1Types with Priority2Types with Priority3Types

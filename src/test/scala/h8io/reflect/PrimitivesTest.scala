@@ -40,11 +40,11 @@ sealed abstract class PrimitiveSpec[T <: AnyVal, B <: AnyRef](repr: String, expe
 
   it should "return false for Null" in { tp <:< implicitly[Type[Null]] shouldBe false }
 
-  it should "return false for a reference trait" in { tp =:= TypeRefTrait shouldBe false }
+  it should "return false for a reference trait" in { tp <:< TypeRefTrait shouldBe false }
 
-  it should "return false for an universal trait" in { tp =:= TypeUniversalTrait shouldBe false }
+  it should "return false for an universal trait" in { tp <:< TypeUniversalTrait shouldBe false }
 
-  it should "return false for a value class" in { tp =:= TypeValClass shouldBe false }
+  it should "return false for a value class" in { tp <:< TypeValClass shouldBe false }
 
   "=:=" should "return true for the self type" in { tp =:= tp shouldBe true }
 
