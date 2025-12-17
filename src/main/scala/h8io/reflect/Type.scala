@@ -48,12 +48,10 @@ private case object TypeNull extends Type[Null] {
   override def toString: String = "Null"
 }
 
-sealed abstract class Primitive[T <: AnyVal, B <: AnyRef](override val toString: String)(implicit boxedTag: LWeakTag[B])
+sealed abstract class Primitive[T <: AnyVal, B <: AnyRef](override val toString: String)(implicit val boxed: Type[B])
     extends Type[T] {
   def <:<(that: Type[?]): Boolean = (that eq TypeAny) || (that eq TypeAnyVal) || (that eq this)
   def =:=(that: Type[?]): Boolean = that eq this
-
-  final val boxed: Type[B] = TypeRef(boxedTag.tag)
 }
 
 private case object TypeBoolean extends Primitive[Boolean, java.lang.Boolean]("Boolean")
@@ -88,12 +86,8 @@ private final case class TypeRef[T <: AnyRef](tag: LightTypeTag) extends Type[T]
   def <:<(that: Type[?]): Boolean =
     that match {
       case TypeAny | TypeAnyRef => true
-      case TypeRef(thatTag) =>
-        println(s"TypeRef: tag: $tag, thatTag: $thatTag")
-        tag <:< thatTag
-      case TypeAnyLike(thatTag) =>
-        println(s"TypeAnyLike: tag: $tag, thatTag: $thatTag")
-        tag <:< thatTag
+      case TypeRef(thatTag) => tag <:< thatTag
+      case TypeAnyLike(thatTag) => tag <:< thatTag
       case _ => false
     }
 
@@ -123,31 +117,25 @@ private final case class TypeAnyLike[T](tag: LightTypeTag) extends Type[T] {
   override def toString: String = tag.scalaStyledRepr
 }
 
-private[reflect] sealed trait Priority1Types {
-  implicit val typeAny: Type[Any] = TypeAny
-  implicit val typeAnyVal: Type[AnyVal] = TypeAnyVal
-  implicit val typeAnyRef: Type[AnyRef] = TypeAnyRef
-  implicit val typeNothing: Type[Nothing] = TypeNothing
-  implicit val typeNull: Type[Null] = TypeNull
+object Type {
+  implicit def typeAny: Type[Any] = TypeAny
+  implicit def typeAnyVal: Type[AnyVal] = TypeAnyVal
+  implicit def typeAnyRef: Type[AnyRef] = TypeAnyRef
+  implicit def typeNothing: Type[Nothing] = TypeNothing
+  implicit def typeNull: Type[Null] = TypeNull
 
-  implicit val typeBoolean: Type[Boolean] = TypeBoolean
-  implicit val typeByte: Type[Byte] = TypeByte
-  implicit val typeShort: Type[Short] = TypeShort
-  implicit val typeInt: Type[Int] = TypeInt
-  implicit val typeLong: Type[Long] = TypeLong
-  implicit val typeFloat: Type[Float] = TypeFloat
-  implicit val typeDouble: Type[Double] = TypeDouble
-  implicit val typeChar: Type[Char] = TypeChar
-  implicit val typeUnit: Type[Unit] = TypeUnit
-}
+  implicit def typeBoolean: Type[Boolean] = TypeBoolean
+  implicit def typeByte: Type[Byte] = TypeByte
+  implicit def typeShort: Type[Short] = TypeShort
+  implicit def typeInt: Type[Int] = TypeInt
+  implicit def typeLong: Type[Long] = TypeLong
+  implicit def typeFloat: Type[Float] = TypeFloat
+  implicit def typeDouble: Type[Double] = TypeDouble
+  implicit def typeChar: Type[Char] = TypeChar
+  implicit def typeUnit: Type[Unit] = TypeUnit
 
-private[reflect] sealed trait Priority2Types {
   implicit def typeVal[T <: AnyVal](implicit tag: LWeakTag[T]): Type[T] = TypeVal(tag.tag)
   implicit def typeRef[T <: AnyRef](implicit tag: LWeakTag[T]): Type[T] = TypeRef(tag.tag)
-}
 
-private[reflect] sealed trait Priority3Types {
   implicit def typeAnyLike[T](implicit tag: LWeakTag[T]): Type[T] = TypeAnyLike(tag.tag)
 }
-
-object Type extends Priority1Types with Priority2Types with Priority3Types
