@@ -49,10 +49,12 @@ private case object TypeNull extends Type[Null] {
   override def toString: String = "Null"
 }
 
-sealed abstract class Primitive[T <: AnyVal, B <: AnyRef](override val toString: String)(implicit val boxed: Type[B])
+sealed abstract class Primitive[T <: AnyVal, B <: AnyRef](override val toString: String)(implicit boxedTag: LWeakTag[B])
     extends Type[T] {
   def <:<(that: Type[?]): Boolean = (that eq TypeAny) || (that eq TypeAnyVal) || (that eq this)
   def =:=(that: Type[?]): Boolean = that eq this
+
+  final val boxed: Type[B] = TypeRef(boxedTag.tag)
 }
 
 private case object TypeBoolean extends Primitive[Boolean, java.lang.Boolean]("Boolean")
