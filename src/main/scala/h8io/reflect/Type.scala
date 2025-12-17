@@ -6,7 +6,6 @@ import scala.runtime.BoxedUnit
 
 sealed trait Type[T] {
   def <:<(that: Type[?]): Boolean
-
   def =:=(that: Type[?]): Boolean
 }
 
