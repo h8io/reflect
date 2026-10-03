@@ -2,7 +2,7 @@ import h8io.sbt.dependencies.*
 import sbt.*
 
 object Dependencies {
-  val IzumiReflect = "dev.zio" %% "izumi-reflect" % "3.0.10"
+  val IzumiReflect = "dev.zio" %% "izumi-reflect" % "3.0.11"
 
   val TestBundle: Seq[ModuleID] =
     Seq(
