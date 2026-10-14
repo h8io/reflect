@@ -2,4 +2,4 @@
 
 set -euxo pipefail
 
-sbt +clean +test ci-release
+sbt --server cleanFull +testFull ci-release

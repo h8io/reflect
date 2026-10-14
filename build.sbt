@@ -4,51 +4,76 @@ import sbt.*
 
 val ProjectName = "reflect"
 
-ThisBuild / organization := "io.h8"
-ThisBuild / organizationName := "H8IO"
-ThisBuild / organizationHomepage := Some(url(s"https://github.com/h8io/$ProjectName"))
-ThisBuild / homepage := Some(url(s"https://github.com/h8io/$ProjectName"))
+// Every branch on the Scala version lists the versions it knows and ends here, so that a new one fails the build until
+// each of them has been looked at
+def unsupportedScala(version: String): Nothing = throw new MessageOnlyException(s"Unsupported Scala version $version")
 
-ThisBuild / scmInfo := Some(
-  ScmInfo(
-    url(s"https://github.com/h8io/$ProjectName"), s"scm:git@github.com:h8io/$ProjectName.git"))
+organization := "io.h8"
+organizationName := "H8IO"
+organizationHomepage := Some(uri(s"https://github.com/h8io/$ProjectName"))
+homepage := Some(uri(s"https://github.com/h8io/$ProjectName"))
+scmInfo := Some(ScmInfo(uri(s"https://github.com/h8io/$ProjectName"), s"scm:git@github.com:h8io/$ProjectName.git"))
+licenses := List(License.Apache2)
+developers := List(
+  Developer(id = "eshu", name = "Pavel", email = "tjano.xibalba@gmail.com", url = uri("https://github.com/eshu/")))
 
-ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+versionScheme := Some("semver-spec")
 
-ThisBuild / developers := List(
-  Developer(
-    id = "eshu",
-    name = "Pavel",
-    email = "tjano.xibalba@gmail.com",
-    url = url("https://github.com/eshu/")))
+coverageSummaryStmtLowThreshold := 100
+coverageSummaryStmtHighThreshold := 100
+coverageSummaryBranchLowThreshold := 100
+coverageSummaryBranchHighThreshold := 100
 
-ThisBuild / versionScheme := Some("semver-spec")
-
-ThisBuild / coverageSummaryStmtLowThreshold := 100
-ThisBuild / coverageSummaryStmtHighThreshold := 100
-ThisBuild / coverageSummaryBranchLowThreshold := 100
-ThisBuild / coverageSummaryBranchHighThreshold := 100
-
+// sbt-dynver computes the version once for the whole build, from these two in ThisBuild
 ThisBuild / dynverSonatypeSnapshots := true
 ThisBuild / dynverSeparator := "-"
 
-val Scalac2Options = Seq("-Xsource:3", "-language:higherKinds", "--deprecation", "--feature", "--unchecked", "-Xlint:_",
-  "-Xfatal-warnings", "-opt:l:inline", "-opt-warnings")
-
-ThisBuild / scalacOptions ++=
-  (CrossVersion.partialVersion(scalaVersion.value) match {
+scalacOptions ++= {
+  val scala2 = Seq("-Xsource:3", "--deprecation", "--feature", "--unchecked", "-Xlint:_", "-Xfatal-warnings",
+    "-opt:l:inline", "-opt-warnings")
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((2, 13)) =>
+      scala2 ++ Seq("--explain-types", "--language:_", "-Wunused:_", "-Wdead-code", "-Wvalue-discard",
+        "-Wnonunit-statement")
     case Some((2, 12)) =>
-      Scalac2Options ++ Seq("-Ywarn-unused", "-Ywarn-dead-code", "-Ywarn-unused:-nowarn", "-Ypartial-unification")
-    case Some((2, 13)) => Scalac2Options ++ Seq("--explain-types", "--language:_", "-Wunused:_", "-Wdead-code")
-    case _ => Nil
-  })
+      scala2 ++ Seq("-language:higherKinds", "-Ywarn-unused", "-Ywarn-dead-code", "-Ywarn-unused:-nowarn",
+        "-Ywarn-value-discard", "-Ypartial-unification")
+    case Some((3, 9)) =>
+      Seq(
+        "-deprecation",
+        "-feature",
+        "-unchecked",
+        "-Wall",
+        "-Werror",
+        "-explain",
+        "-opt",
+        "-Wopt:at-inline-failed-summary",
+        // Scala 2 needs the trailing `_` to eta-expand a method without an expected function type, Scala 3 does not
+        "-Wconf:msg=eta-expansion is unnecessary:s"
+      )
+    case _ => unsupportedScala(scalaVersion.value)
+  }
+}
 
-ThisBuild / javacOptions ++= Seq("-target", "8")
+// For code whose statements are values on purpose: a ScalaMock expectation or a ScalaTest assertion in tests. Those
+// are spared the warnings about discarded values. On 2.13 the category of -Wnonunit-statement is shared with the
+// warning about a pure expression in statement position, which they lose as well.
+def lenientScalacOptions(scalaVersion: String): Seq[String] =
+  CrossVersion.partialVersion(scalaVersion) match {
+    case Some((2, 13)) => Seq("-Wconf:cat=w-flag-value-discard:s,cat=other-pure-statement:s")
+    case Some((2, 12)) => Seq("-Wconf:cat=w-flag-value-discard:s")
+    case Some((3, 9)) => Seq("-Wconf:name=ValueDiscarding:s,name=UnusedNonUnitValue:s")
+    case _ => unsupportedScala(scalaVersion)
+  }
 
-ThisBuild / scalaVersion := "2.13.18"
-ThisBuild / crossScalaVersions += "2.12.21"
+Test / scalacOptions ++= lenientScalacOptions(scalaVersion.value)
 
-ThisBuild / libraryDependencies ++= TestBundle % Test
+javacOptions ++= Seq("-target", "8")
+
+scalaVersion := "2.13.18"
+crossScalaVersions ++= Seq("2.12.21", "3.9.0")
+
+libraryDependencies ++= TestBundle % Test
 
 val root = (project in file("."))
   .enablePlugins(ScoverageSummaryPlugin)
