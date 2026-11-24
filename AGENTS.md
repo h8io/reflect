@@ -27,6 +27,40 @@ The whole library is `src/main/scala/h8io/reflect/Type.scala`:
   implicit can silently move a type into a different case; the `shouldBe a[TypeXxx[?]]`
   and `should be theSameInstanceAs TypeXxx` tests are what catch that.
 
+### What izumi gets wrong, and what `Type` does about it
+
+Raw `LightTypeTag <:<` answers, checked against `Type` on Scala 2.13 and 3.9 (identical on
+both, izumi-reflect 3.0.11):
+
+| Pair                       | izumi | `Type` | Scala |
+|----------------------------|-------|--------|-------|
+| `Int <: AnyRef`            | true  | false  | false |
+| `ValClass <: AnyRef`       | true  | false  | false |
+| `UniversalTrait <: AnyRef` | true  | false  | false |
+| `Null <: Int`              | true  | false  | false |
+| `Null <: ValClass`         | true  | false  | false |
+
+To izumi, `AnyRef` is a supertype of nearly everything and `Null` a subtype of everything,
+as if it were `Nothing`. Everything else probed agrees with Scala: primitives and their Java
+boxes are unrelated, `String` is not an `AnyVal`, variance works, `Object =:= AnyRef`.
+
+`Type` sidesteps this by deciding the `AnyVal`/`AnyRef` boundary statically, from the upper
+bound of `T` when the implicit is picked, instead of asking izumi at runtime. The top and
+bottom types and the primitives are singletons with a hand-written table; the wrappers ask
+izumi only within their own branch and upwards into `TypeAnyLike`, and answer `false`
+across branches without asking.
+
+The fix holds only at the top level. Type arguments are compared by izumi, so its mistakes
+leak through them: `Type` answers `true` for `List[Int] <: List[AnyRef]`,
+`List[ValClass] <: List[AnyRef]`, `Option[UniversalTrait] <: Option[AnyRef]` and
+`List[Null] <: List[Int]`, all of which Scala rejects.
+
+One divergence from Scala is the other way round: `Type` says `Null` is not a subtype of a
+universal trait (`TypeNull <:< TypeAnyLike(_)` is `false`), but both compilers accept
+`val x: UniversalParentTrait = null`, since `Null` conforms to every type that is not a
+subtype of `AnyVal`. Whether that is intended (a value class can be a universal trait and
+can never be `null`) is not recorded; ask before changing it either way.
+
 ### Why `TypeNothing` exists
 
 Not because of izumi: `LWeakTag[Nothing]` and `Tag[Nothing]` resolve, and izumi's own `<:<`
