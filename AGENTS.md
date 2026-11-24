@@ -25,7 +25,28 @@ The whole library is `src/main/scala/h8io/reflect/Type.scala`:
   on Scala's overloading specificity among implicits in the same scope (a concrete
   `typeInt` beats `typeVal`, `typeVal`/`typeRef` beat `typeAnyLike`). Adding or changing an
   implicit can silently move a type into a different case; the `shouldBe a[TypeXxx[?]]`
-  tests are what catch that.
+  and `should be theSameInstanceAs TypeXxx` tests are what catch that.
+
+### Why `TypeNothing` exists
+
+Not because of izumi: `LWeakTag[Nothing]` and `Tag[Nothing]` resolve, and izumi's own `<:<`
+answers for `Nothing` are right. The singleton is needed by `Type`'s own design, for two
+independent reasons (checked on 2.13 and 3.9):
+
+- **Resolution.** `Nothing` satisfies every bound, so without `typeNothing` there is no
+  `Type[Nothing]` at all. Scala 3 reports `typeVal` and `typeRef` as ambiguous (neither is
+  more specific than the other). Scala 2.13 reports only "could not find implicit value",
+  even with `-Vimplicits`; presumably it discards candidates whose type parameter would be
+  inferred as `Nothing`, but that is unverified.
+- **Answers.** Built explicitly through a wrapper, `Nothing` lands in one branch, and the
+  cross-branch shortcuts answer `false` for everything outside it, while singletons such as
+  the primitives and `TypeNull` never consult izumi. `typeRef[Nothing]` claims `Nothing` is
+  not a subtype of `Int`, `Null` or a value class, `typeVal[Nothing]` that it is not a
+  subtype of `Int`, `String` or `Null`, and `typeAnyLike[Nothing]` gets all of those wrong.
+  The bottom type has to answer `true` for everything, so it is a singleton.
+
+`TypeNothingTest` checks that `implicitly[Type[Nothing]]` is `TypeNothing`; without
+`typeNothing` the test sources do not compile.
 
 Every concrete case is `private`; only `Type`, `Primitive` and the implicits in
 `object Type` are public. Keep it that way unless a change in Xi needs more.
