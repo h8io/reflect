@@ -33,8 +33,8 @@ Every concrete case is `private`; only `Type`, `Primitive` and the implicits in
 ## Build
 
 - sbt **2** (`project/build.properties`), JDK 17 in CI.
-- Cross build: Scala **2.13** (default `scalaVersion`), **2.12** and **3.9**. Use `+` to run
-  a command on all of them; a change is not done until it compiles and passes on every row.
+- Cross build: Scala **2.13** (default `scalaVersion`) and **3.9**. Use `+` to run
+  a command on both; a change is not done until it compiles and passes on every row.
 - Every match on the Scala version in `build.sbt` ends in `unsupportedScala`, so adding a
   version fails the build until each branch has been extended. Do not add a catch-all.
 - Warnings are errors on every version (`-Xfatal-warnings` / `-Werror`, plus `-Xlint`,
@@ -80,7 +80,7 @@ so a check placed earlier would stop the build before the other rows' reports ar
 
 - `scalafmt` (`.scalafmt.conf`, 120 columns) is checked in CI; run `sbt scalafmtAll scalafmtSbt`
   before committing.
-- Source must compile on Scala 2.12, 2.13 and 3 alike. Scala 2 runs with `-Xsource:3`, so use
+- Source must compile on Scala 2.13 and 3 alike. Scala 2 runs with `-Xsource:3`, so use
   the shared subset: `?` for wildcard types, `import a.{b as c}` / `import java.util as ju`,
   `implicit` (not `given`/`using`), no Scala-3-only syntax such as braceless blocks or enums.
 
