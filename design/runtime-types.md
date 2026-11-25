@@ -38,6 +38,28 @@ Building types at runtime is izumi's main feature (it exists for distage and ZIO
 On the JVM, Scala 2 and 3 have no other library for this: scala-reflect's `TypeTag` is Scala 2
 only, and Scala 3 has no runtime reflection at all.
 
+### What izumi gets wrong
+
+Raw `LightTypeTag <:<` answers against the current `Type` and Scala:
+
+| Pair                       | izumi | `Type` | Scala |
+|----------------------------|-------|--------|-------|
+| `Int <: AnyRef`            | true  | false  | false |
+| `ValClass <: AnyRef`       | true  | false  | false |
+| `UniversalTrait <: AnyRef` | true  | false  | false |
+| `Null <: Int`              | true  | false  | false |
+| `Null <: ValClass`         | true  | false  | false |
+
+To izumi, `AnyRef` is a supertype of nearly everything and `Null` a subtype of everything, as if it
+were `Nothing`. Everything else probed agrees with Scala: primitives and their Java boxes are
+unrelated, `String` is not an `AnyVal`, variance works, `Object =:= AnyRef`.
+
+The current `Type` corrects these only at the top level, by deciding the AnyVal/AnyRef boundary from
+the upper bound of `T` when the implicit is picked. Type arguments are compared by izumi, so its
+mistakes leak through: `Type` answers `true` for `List[Int] <: List[AnyRef]`,
+`List[ValClass] <: List[AnyRef]`, `Option[UniversalTrait] <: Option[AnyRef]` and
+`List[Null] <: List[Int]`, all of which Scala rejects.
+
 ### The current `Type` design does not survive runtime construction
 
 `Type` decides the AnyVal/AnyRef boundary from the upper bound of `T` when the implicit is
@@ -253,16 +275,15 @@ The existing code may be dropped entirely; nothing of the current `Type` has to 
   fixtures in `h8io.reflect.test` (`UniversalParentTrait`, `UniversalTrait`, `RefTrait`, `ValClass`,
   `Primitives`). They are exactly the hard cases where izumi broke, and the new code needs them too.
 - **Dropped:** `Type.scala` and the tests of its cases (`Type<Case>Test`, `PrimitivesTest`,
-  `TypeTest`). What they encoded is in AGENTS.md and in this document.
+  `TypeTest`). What they encoded is in this document and in git history.
 - **In one PR with the sketch below, not separately.** A `main` with an empty `src/main` would let
   any `vX.Y.Z` tag publish an empty library. Xi is pinned to 0.0.6, so nothing breaks at once, but
   there is no reason to open that window.
 - **The same PR also changes the skeleton:** `src/main/scala-2` and `src/main/scala-3` for the
   macros, `scala-reflect` (provided) on 2.13, `izumi-reflect` removed from `Dependencies.scala`.
   AGENTS.md forbids dependency changes as a side effect, so it has to be stated in the PR.
-- **AGENTS.md is rewritten in the same PR.** "What this is" and "Why `TypeNothing` exists"
-  describe the current code. The analysis of izumi's mistakes stays useful as rationale; it
-  belongs here rather than in AGENTS.md.
+- **AGENTS.md gets a description of the new code in the same PR.** The description of the old
+  `Type` was removed ahead of the rewrite; the izumi findings moved here ("What izumi gets wrong").
 - **Unverified:** what `+coverageSummaryCheck` does on a module with no statements (0 of 0); it
   may fail or report NaN. Matters only if the code is ever deleted without a replacement.
 
