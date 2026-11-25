@@ -4,86 +4,13 @@ Guidance for coding agents working in this repository.
 
 ## What this is
 
-`io.h8 %% reflect`: a small reflection library for Scala, built on
-[izumi-reflect](https://github.com/zio/izumi-reflect). It exists to serve the needs of
+`io.h8 %% reflect`: a small reflection library for Scala. It exists to serve the needs of
 [Xi](https://github.com/h8io/xi), so its API grows only as far as Xi needs it.
 
-The whole library is `src/main/scala/h8io/reflect/Type.scala`:
-
-- `sealed trait Type[T]` with two operations: `<:<` (subtype) and `=:=` (type equality).
-- Private singletons for the top and bottom types: `TypeAny`, `TypeAnyVal`, `TypeAnyRef`,
-  `TypeNothing`, `TypeNull`.
-- `Primitive[T, B]` for the nine primitives (`TypeBoolean` … `TypeUnit`), each carrying the
-  `Type` of its boxed Java class. A primitive and its box are unrelated: `Int <:< Integer`
-  is `false` both ways.
-- Three wrappers around an izumi `LightTypeTag`, chosen by the upper bound of `T`:
-  `TypeVal` (`T <: AnyVal`), `TypeRef` (`T <: AnyRef`) and `TypeAnyLike` (anything else,
-  e.g. universal traits extending `Any`). Comparisons across wrappers are deliberately
-  asymmetric: a `TypeVal` or `TypeRef` can be a subtype of a `TypeAnyLike`, never the
-  other way round, and `TypeNull` is a subtype of `TypeRef` but not of `TypeAnyLike`.
-- `object Type` holds the implicit instances. Which one is picked for a given `T` relies
-  on Scala's overloading specificity among implicits in the same scope (a concrete
-  `typeInt` beats `typeVal`, `typeVal`/`typeRef` beat `typeAnyLike`). Adding or changing an
-  implicit can silently move a type into a different case; the `shouldBe a[TypeXxx[?]]`
-  and `should be theSameInstanceAs TypeXxx` tests are what catch that.
-
-### What izumi gets wrong, and what `Type` does about it
-
-Raw `LightTypeTag <:<` answers, checked against `Type` on Scala 2.13 and 3.9 (identical on
-both, izumi-reflect 3.0.11):
-
-| Pair                       | izumi | `Type` | Scala |
-|----------------------------|-------|--------|-------|
-| `Int <: AnyRef`            | true  | false  | false |
-| `ValClass <: AnyRef`       | true  | false  | false |
-| `UniversalTrait <: AnyRef` | true  | false  | false |
-| `Null <: Int`              | true  | false  | false |
-| `Null <: ValClass`         | true  | false  | false |
-
-To izumi, `AnyRef` is a supertype of nearly everything and `Null` a subtype of everything,
-as if it were `Nothing`. Everything else probed agrees with Scala: primitives and their Java
-boxes are unrelated, `String` is not an `AnyVal`, variance works, `Object =:= AnyRef`.
-
-`Type` sidesteps this by deciding the `AnyVal`/`AnyRef` boundary statically, from the upper
-bound of `T` when the implicit is picked, instead of asking izumi at runtime. The top and
-bottom types and the primitives are singletons with a hand-written table; the wrappers ask
-izumi only within their own branch and upwards into `TypeAnyLike`, and answer `false`
-across branches without asking.
-
-The fix holds only at the top level. Type arguments are compared by izumi, so its mistakes
-leak through them: `Type` answers `true` for `List[Int] <: List[AnyRef]`,
-`List[ValClass] <: List[AnyRef]`, `Option[UniversalTrait] <: Option[AnyRef]` and
-`List[Null] <: List[Int]`, all of which Scala rejects.
-
-One divergence from Scala is the other way round: `Type` says `Null` is not a subtype of a
-universal trait (`TypeNull <:< TypeAnyLike(_)` is `false`), but both compilers accept
-`val x: UniversalParentTrait = null`, since `Null` conforms to every type that is not a
-subtype of `AnyVal`. Whether that is intended (a value class can be a universal trait and
-can never be `null`) is not recorded; ask before changing it either way.
-
-### Why `TypeNothing` exists
-
-Not because of izumi: `LWeakTag[Nothing]` and `Tag[Nothing]` resolve, and izumi's own `<:<`
-answers for `Nothing` are right. The singleton is needed by `Type`'s own design, for two
-independent reasons (checked on 2.13 and 3.9):
-
-- **Resolution.** `Nothing` satisfies every bound, so without `typeNothing` there is no
-  `Type[Nothing]` at all. Scala 3 reports `typeVal` and `typeRef` as ambiguous (neither is
-  more specific than the other). Scala 2.13 reports only "could not find implicit value",
-  even with `-Vimplicits`; presumably it discards candidates whose type parameter would be
-  inferred as `Nothing`, but that is unverified.
-- **Answers.** Built explicitly through a wrapper, `Nothing` lands in one branch, and the
-  cross-branch shortcuts answer `false` for everything outside it, while singletons such as
-  the primitives and `TypeNull` never consult izumi. `typeRef[Nothing]` claims `Nothing` is
-  not a subtype of `Int`, `Null` or a value class, `typeVal[Nothing]` that it is not a
-  subtype of `Int`, `String` or `Null`, and `typeAnyLike[Nothing]` gets all of those wrong.
-  The bottom type has to answer `true` for everything, so it is a singleton.
-
-`TypeNothingTest` checks that `implicitly[Type[Nothing]]` is `TypeNothing`; without
-`typeNothing` the test sources do not compile.
-
-Every concrete case is `private`; only `Type`, `Primitive` and the implicits in
-`object Type` are public. Keep it that way unless a change in Xi needs more.
+**The library is being rewritten from scratch.** The current `Type.scala` (built on
+izumi-reflect) is to be replaced by an own macro-based representation without izumi. Do not
+extend the current code. The design, the agreed API, the measurements behind it and the open
+decisions are in `design/runtime-types.md`; read it before touching `src/main`.
 
 ## Build
 
@@ -141,20 +68,10 @@ so a check placed earlier would stop the build before the other rows' reports ar
 
 ## Tests
 
-ScalaTest `AnyFlatSpec with Matchers` under `src/test/scala/h8io/reflect`:
-
-- one `Type<Case>Test` per case class/object (`TypeAnyTest`, `TypeRefTest`, …) checking its
-  runtime class, `toString`, and `<:<`/`=:=` against every other case;
-- `PrimitivesTest` for the primitives, `TypeTest` for end-to-end checks on real types,
-  including variance of type parameters;
-- fixtures in the `h8io.reflect.test` package: a universal trait hierarchy
-  (`UniversalParentTrait`, `UniversalTrait`), `RefTrait`, the value class `ValClass`, and
-  `Primitives`, the list of all primitive cases.
-
-The `toString` block at the end of `TypeTest` has been commented out since the move from
-scala-reflect to izumi-reflect (#14); its expectations were written for scala-reflect's
-rendering. Don't re-enable it without checking what `scalaStyledRepr` gives on every row of
-the cross build.
+ScalaTest `AnyFlatSpec with Matchers` under `src/test/scala/h8io/reflect`. The fixtures in the
+`h8io.reflect.test` package are kept across the rewrite: a universal trait hierarchy
+(`UniversalParentTrait`, `UniversalTrait`), `RefTrait`, the value class `ValClass`, and
+`Primitives`, the list of all primitive cases. They are the cases izumi got wrong.
 
 ## Workflow
 
