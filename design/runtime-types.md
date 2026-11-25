@@ -203,6 +203,20 @@ Why it has this shape:
   as a `Kind2`. Compile error until something does.
 - **Generic code** gets a Kind the same way: `def f[F[_]: Kind1, A: Type] = Kind1[F].apply(Type[A])`.
 
+**Where comparison and variance live.** `unapply` is for Xi's builders, not for comparing:
+
+- **Comparison is internal to `Type`.** A `Type` is a tree: a constructor and its arguments. The
+  constructor's descriptor holds the variance of each parameter and its base types written in terms
+  of its own parameters. `<:<` lifts the left side to the right side's constructor through the base
+  types, then compares the arguments pairwise according to variance. None of this is public; the
+  public surface stays `<:<` and `=:=`.
+- **Variance is needed when building.** A Kind carries its constructor's descriptor, variances
+  included, from the macro. `apply` hangs the arguments on that descriptor. Without the variances, a
+  type built by `apply` would compare wrongly (`OptionK(Int) <:< OptionK(Any)` would be `false`).
+- **`unapply` needs no variance.** It lifts the type to `F`'s base type and returns that base type's
+  arguments as they are: `Some[Int]` → `Option[Int]` → `Int`, `class Foo extends Option[String]` →
+  `String`.
+
 **Hierarchy differences between 2.13 and 3.** Without `-Yexplicit-nulls`, `Null` behaves the same on
 both: a subtype of everything that is not `AnyVal`, universal traits included (both compilers accept
 `val x: UniversalParentTrait = null`). The difference today is `Matchable` on 3, which universal
@@ -216,6 +230,11 @@ version, filled in by the macro, so that either can change without touching the 
   it on purpose). With A and Scala's Null rule the answer is forced to `true`. With a macro, either
   is possible. Decide before sketching.
 - **`Matchable` on Scala 3:** expose it, or hide it so that both versions report the same hierarchy.
+- **`unapply` on the bottom types.** `Nothing <: Option[X]` holds for every `X`, and
+  `Null <: Option[X]` too (`Option` is an AnyRef), but neither has a base type `Option[…]` to take
+  apart. Proposal: `OptionK.unapply(Nothing)` is `Some(Nothing)`, consistent with `Option[Nothing]`,
+  so that `Unlift` outputs `Nothing`, which is sound. `OptionK.unapply(Null)` is `None`, since `null` is
+  not an `Option` and there is nothing to take apart.
 ## Next step, when this is picked up
 
 A sketch on 2.13 and 3.9: implicit macros producing `Type[Stage[-I, O, +E]]` with base types,
