@@ -1,7 +1,6 @@
 # Runtime types: what reflect should become
 
-Status: **discussion.** The API shape is agreed (see "The API"); the implementation direction is
-not. Written 2026-11-25.
+Status: **direction decided (B), API agreed, not implemented.** Written 2026-11-25.
 
 ## The goal
 
@@ -124,7 +123,7 @@ gap the tag leaves open, and parts built by `combine` carry that marking from th
 tag, and our own walk over `LightTypeTagRef` applies the boundary rules with variance. Cost: two
 parallel representations kept in sync, with izumi's wrong algorithm still underneath.
 
-**B. Drop izumi and write our own, restricted to what Xi needs** (Eshu's current leaning). One
+**B. Drop izumi and write our own, restricted to what Xi needs** (**decided 2026-11-25**). One
 representation, built by our macro. Shapes outside the subset are **compile errors** instead of
 silently wrong answers, which izumi cannot offer. Once A needs a macro and our own walk anyway,
 B's remaining work is mostly storing base types ourselves.
@@ -237,7 +236,6 @@ version, filled in by the macro, so that either can change without touching the 
 
 ## Open decisions (Eshu's)
 
-- **A or B.** Leaning B. The API above holds for either.
 - **`Null <: universal trait`:** Scala says `true`, `TypeNull` says `false` (`TypeNullTest` asserts
   it on purpose). With A and Scala's Null rule the answer is forced to `true`. With a macro, either
   is possible. Decide before sketching.
@@ -247,6 +245,27 @@ version, filled in by the macro, so that either can change without touching the 
   apart. Proposal: `OptionK.unapply(Nothing)` is `Some(Nothing)`, consistent with `Option[Nothing]`,
   so that `Unlift` outputs `Nothing`, which is sound. `OptionK.unapply(Null)` is `None`, since `null` is
   not an `Option` and there is nothing to take apart.
+## Rewrite from scratch (decided 2026-11-25)
+
+The existing code may be dropped entirely; nothing of the current `Type` has to survive.
+
+- **Kept:** the build skeleton (`build.sbt`, `project/`, `test.sh`, the workflows) and the test
+  fixtures in `h8io.reflect.test` (`UniversalParentTrait`, `UniversalTrait`, `RefTrait`, `ValClass`,
+  `Primitives`). They are exactly the hard cases where izumi broke, and the new code needs them too.
+- **Dropped:** `Type.scala` and the tests of its cases (`Type<Case>Test`, `PrimitivesTest`,
+  `TypeTest`). What they encoded is in AGENTS.md and in this document.
+- **In one PR with the sketch below, not separately.** A `main` with an empty `src/main` would let
+  any `vX.Y.Z` tag publish an empty library. Xi is pinned to 0.0.6, so nothing breaks at once, but
+  there is no reason to open that window.
+- **The same PR also changes the skeleton:** `src/main/scala-2` and `src/main/scala-3` for the
+  macros, `scala-reflect` (provided) on 2.13, `izumi-reflect` removed from `Dependencies.scala`.
+  AGENTS.md forbids dependency changes as a side effect, so it has to be stated in the PR.
+- **AGENTS.md is rewritten in the same PR.** "What this is" and "Why `TypeNothing` exists"
+  describe the current code. The analysis of izumi's mistakes stays useful as rationale; it
+  belongs here rather than in AGENTS.md.
+- **Unverified:** what `+coverageSummaryCheck` does on a module with no statements (0 of 0); it
+  may fail or report NaN. Matters only if the code is ever deleted without a replacement.
+
 ## Next step, when this is picked up
 
 A sketch on 2.13 and 3.9: implicit macros producing `Type[Stage[-I, O, +E]]` with base types,
