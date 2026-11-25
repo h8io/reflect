@@ -210,6 +210,18 @@ Why it has this shape:
   of its own parameters. `<:<` lifts the left side to the right side's constructor through the base
   types, then compares the arguments pairwise according to variance. None of this is public; the
   public surface stays `<:<` and `=:=`.
+
+  For arguments `a` (left) and `b` (right) at the same position:
+
+  | Parameter      | Condition  |
+  |----------------|------------|
+  | covariant      | `a <:< b`  |
+  | contravariant  | `b <:< a`  |
+  | invariant      | `a =:= b`  |
+
+  On `Stage[-I, O, +E]`: `Stage[AnyRef, Int] <: Stage[Int, Int]` is `false`, since `I` is
+  contravariant and `Int <: AnyRef` is false. `Stage[Any, Int] <: Stage[String, Int]` is `true`, since
+  `String <: Any`.
 - **Variance is needed when building.** A Kind carries its constructor's descriptor, variances
   included, from the macro. `apply` hangs the arguments on that descriptor. Without the variances, a
   type built by `apply` would compare wrongly (`OptionK(Int) <:< OptionK(Any)` would be `false`).
