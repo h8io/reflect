@@ -95,7 +95,7 @@ trait's is empty, and `Any` is recorded nowhere. Consequences:
 
 - `Null` anywhere (`Null <: Int`, `List[Null] <: List[Int]`): fixable at runtime with Scala's rule
   "`Null <: X` iff `X` is not a subtype of `AnyVal`". But that rule makes `Null <: UniversalTrait`
-  `true`, which is the opposite of what `TypeNull` says today (see the open decisions).
+  `true`, which is the opposite of what `TypeNull` said (decided: `true`, see "The rule").
 - `Int` or a value class against `AnyRef`, in type arguments too: fixable with the AnyVal test.
 - `UniversalTrait <: AnyRef` and `Option[UniversalTrait] <: Option[AnyRef]`: **not fixable from the tag.**
   At the top level the statically picked implicit still knows. Inside arguments built by
@@ -256,12 +256,29 @@ both: a subtype of everything that is not `AnyVal`, universal traits included (b
 traits do not extend. `Null` changes only under explicit nulls. Keep the hierarchy rules per Scala
 version, filled in by the macro, so that either can change without touching the other.
 
+## The rule: the compiler is the oracle (decided 2026-11-27)
+
+`Type[A] <:< Type[B]` is `true` exactly when the compiler proves `A <: B`, that is, when
+`implicitly[A <:< B]` compiles; likewise `=:=` against `implicitly[A =:= B]`, on the Scala version
+in use. If the compiler can glue `Stage[?, O, ?] ~> Stage[I, ?, ?]`, then `Type[O] <:< Type[I]`.
+No deviations in either direction, at any depth.
+
+- **Subtyping, not assignability.** `val x: Long = 1: Int` compiles through numeric widening (and
+  any implicit conversion), but `Int <: Long` is false. Only `<:<` evidence counts.
+- **Per version.** Where 2.13 and 3 differ (`Matchable`, later explicit nulls), `Type` differs the
+  same way.
+- **Tests take the expected answer from the compiler**, not from a hand-written table: ScalaTest's
+  `assertCompiles("implicitly[A <:< B]")` / `assertTypeError(...)` work on both versions, so each
+  fixture pair can be checked against the compiler and the runtime answer side by side.
+
+Consequence: **`Null <: universal trait` is `true`**, since both compilers accept
+`val x: UniversalParentTrait = null`. The old `TypeNull` answer (`false`) is dropped with the old code.
+
 ## Open decisions (Eshu's)
 
-- **`Null <: universal trait`:** Scala says `true`, `TypeNull` says `false` (`TypeNullTest` asserts
-  it on purpose). With A and Scala's Null rule the answer is forced to `true`. With a macro, either
-  is possible. Decide before sketching.
-- **`Matchable` on Scala 3:** expose it, or hide it so that both versions report the same hierarchy.
+- **`Matchable` on Scala 3:** hiding it by mapping it to `Any` breaks the rule above
+  (`UniversalTrait <: Matchable` would come out `true`, Scala 3 says `false`). What remains: expose
+  it on 3, or make `Type[Matchable]` a compile error.
 - **`unapply` on the bottom types.** `Nothing <: Option[X]` holds for every `X`, and
   `Null <: Option[X]` too (`Option` is an AnyRef), but neither has a base type `Option[…]` to take
   apart. Proposal: `OptionK.unapply(Nothing)` is `Some(Nothing)`, consistent with `Option[Nothing]`,
