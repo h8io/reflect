@@ -1,186 +1,182 @@
 package h8io.reflect
 
+import h8io.reflect.test.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.util as ju
-
+/** Each answer is checked against the compiler's, which is the specification. */
 class TypeTest extends AnyFlatSpec with Matchers {
-  "<:<" should "work for a primitive type" in {
-    implicitly[Type[Int]] <:< implicitly[Type[Int]] shouldBe true
-
-    implicitly[Type[Int]] <:< implicitly[Type[Any]] shouldBe true
-    implicitly[Type[Int]] <:< implicitly[Type[AnyVal]] shouldBe true
-    implicitly[Type[Int]] <:< implicitly[Type[AnyRef]] shouldBe false
-    implicitly[Type[Int]] <:< implicitly[Type[Integer]] shouldBe false
-    implicitly[Type[Integer]] <:< implicitly[Type[Int]] shouldBe false
+  "AnyRef" should "be above reference types only" in {
+    Type[Int] <:< Type[AnyRef] shouldBe false
+    assertTypeError("implicitly[Int <:< AnyRef]")
+    Type[ValClass] <:< Type[AnyRef] shouldBe false
+    assertTypeError("implicitly[ValClass <:< AnyRef]")
+    Type[UniversalTrait] <:< Type[AnyRef] shouldBe false
+    assertTypeError("implicitly[UniversalTrait <:< AnyRef]")
+    Type[RefTrait] <:< Type[AnyRef] shouldBe true
+    assertCompiles("implicitly[RefTrait <:< AnyRef]")
+    Type[String] <:< Type[AnyRef] shouldBe true
+    assertCompiles("implicitly[String <:< AnyRef]")
+    Type[AnyRef] =:= Type[Object] shouldBe true
+    assertCompiles("implicitly[AnyRef =:= Object]")
   }
 
-  it should "work for a plain reference type" in {
-    implicitly[Type[String]] <:< implicitly[Type[String]] shouldBe true
-
-    implicitly[Type[String]] <:< implicitly[Type[AnyVal]] shouldBe false
-    implicitly[Type[String]] <:< implicitly[Type[AnyRef]] shouldBe true
-    implicitly[Type[String]] <:< implicitly[Type[CharSequence]] shouldBe true
-    implicitly[Type[String]] <:< implicitly[Type[Nothing]] shouldBe false
-    implicitly[Type[CharSequence]] <:< implicitly[Type[String]] shouldBe false
+  "AnyVal" should "be above primitives and value classes only" in {
+    Type[Int] <:< Type[AnyVal] shouldBe true
+    assertCompiles("implicitly[Int <:< AnyVal]")
+    Type[ValClass] <:< Type[AnyVal] shouldBe true
+    assertCompiles("implicitly[ValClass <:< AnyVal]")
+    Type[UniversalTrait] <:< Type[AnyVal] shouldBe false
+    assertTypeError("implicitly[UniversalTrait <:< AnyVal]")
+    Type[String] <:< Type[AnyVal] shouldBe false
+    assertTypeError("implicitly[String <:< AnyVal]")
   }
 
-  it should "work for a reference type with invariant type parameters" in {
-    implicitly[Type[ju.List[String]]] <:< implicitly[Type[ju.Collection[CharSequence]]] shouldBe false
-    implicitly[Type[ju.List[String]]] <:< implicitly[Type[ju.Collection[String]]] shouldBe true
-    implicitly[Type[ju.List[String]]] <:< implicitly[Type[ju.Collection[Nothing]]] shouldBe false
-    implicitly[Type[ju.List[CharSequence]]] <:< implicitly[Type[ju.Collection[String]]] shouldBe false
-
-    implicitly[Type[ju.List[String]]] <:< implicitly[Type[ju.List[CharSequence]]] shouldBe false
-    implicitly[Type[ju.List[String]]] <:< implicitly[Type[ju.List[String]]] shouldBe true
-    implicitly[Type[ju.List[String]]] <:< implicitly[Type[ju.List[Nothing]]] shouldBe false
-    implicitly[Type[ju.List[CharSequence]]] <:< implicitly[Type[ju.List[String]]] shouldBe false
-
-    implicitly[Type[ju.List[String]]] <:< implicitly[Type[ju.ArrayList[CharSequence]]] shouldBe false
-    implicitly[Type[ju.List[String]]] <:< implicitly[Type[ju.ArrayList[String]]] shouldBe false
-    implicitly[Type[ju.List[String]]] <:< implicitly[Type[ju.ArrayList[Nothing]]] shouldBe false
-    implicitly[Type[ju.List[CharSequence]]] <:< implicitly[Type[ju.ArrayList[String]]] shouldBe false
+  "Any" should "be above everything" in {
+    for (t <- TypeUniversalTrait :: TypeValClass :: TypeRefTrait :: Type[Null] :: Type[Nothing] :: Primitives)
+      t <:< Type[Any] shouldBe true
+    assertCompiles("implicitly[UniversalTrait <:< Any]")
+    Type[Any] <:< Type[AnyRef] shouldBe false
+    assertTypeError("implicitly[Any <:< AnyRef]")
   }
 
-  it should "work for a reference type with covariant type parameters" in {
-    implicitly[Type[Seq[String]]] <:< implicitly[Type[Iterable[CharSequence]]] shouldBe true
-    implicitly[Type[Seq[String]]] <:< implicitly[Type[Iterable[String]]] shouldBe true
-    implicitly[Type[Seq[String]]] <:< implicitly[Type[Iterable[Nothing]]] shouldBe false
-    implicitly[Type[Seq[CharSequence]]] <:< implicitly[Type[Iterable[String]]] shouldBe false
-
-    implicitly[Type[Seq[String]]] <:< implicitly[Type[Seq[CharSequence]]] shouldBe true
-    implicitly[Type[Seq[String]]] <:< implicitly[Type[Seq[String]]] shouldBe true
-    implicitly[Type[Seq[String]]] <:< implicitly[Type[Seq[Nothing]]] shouldBe false
-    implicitly[Type[Seq[CharSequence]]] <:< implicitly[Type[Seq[String]]] shouldBe false
-
-    implicitly[Type[Seq[String]]] <:< implicitly[Type[List[CharSequence]]] shouldBe false
-    implicitly[Type[Seq[String]]] <:< implicitly[Type[List[String]]] shouldBe false
-    implicitly[Type[Seq[String]]] <:< implicitly[Type[List[Nothing]]] shouldBe false
-    implicitly[Type[Seq[CharSequence]]] <:< implicitly[Type[List[String]]] shouldBe false
+  "Universal traits" should "be above the classes that extend them" in {
+    TypeValClass <:< TypeUniversalParentTrait shouldBe true
+    assertCompiles("implicitly[ValClass <:< UniversalParentTrait]")
+    TypeRefTrait <:< TypeUniversalParentTrait shouldBe true
+    assertCompiles("implicitly[RefTrait <:< UniversalParentTrait]")
+    TypeUniversalTrait <:< TypeUniversalParentTrait shouldBe true
+    assertCompiles("implicitly[UniversalTrait <:< UniversalParentTrait]")
+    TypeUniversalParentTrait <:< TypeUniversalTrait shouldBe false
+    assertTypeError("implicitly[UniversalParentTrait <:< UniversalTrait]")
   }
 
-  it should "work for a reference type with contravariant type parameters" in {
-    implicitly[Type[PartialFunction[String, Unit]]] <:< implicitly[Type[CharSequence => Unit]] shouldBe false
-    implicitly[Type[PartialFunction[String, Unit]]] <:< implicitly[Type[String => Unit]] shouldBe true
-    implicitly[Type[PartialFunction[String, Unit]]] <:< implicitly[Type[Nothing => Unit]] shouldBe true
-    implicitly[Type[PartialFunction[CharSequence, Unit]]] <:< implicitly[Type[String => Unit]] shouldBe true
-
-    implicitly[Type[PartialFunction[String, Unit]]] <:<
-      implicitly[Type[PartialFunction[CharSequence, Unit]]] shouldBe false
-    implicitly[Type[PartialFunction[String, Unit]]] <:< implicitly[Type[PartialFunction[String, Unit]]] shouldBe true
-    implicitly[Type[PartialFunction[String, Unit]]] <:< implicitly[Type[PartialFunction[Nothing, Unit]]] shouldBe true
-    implicitly[Type[PartialFunction[CharSequence, Unit]]] <:<
-      implicitly[Type[PartialFunction[String, Unit]]] shouldBe true
-
-    implicitly[Type[String => Unit]] <:< implicitly[Type[PartialFunction[CharSequence, Unit]]] shouldBe false
-    implicitly[Type[String => Unit]] <:< implicitly[Type[PartialFunction[String, Unit]]] shouldBe false
-    implicitly[Type[String => Unit]] <:< implicitly[Type[PartialFunction[Nothing, Unit]]] shouldBe false
-    implicitly[Type[CharSequence => Unit]] <:< implicitly[Type[PartialFunction[String, Unit]]] shouldBe false
+  "Primitives" should "be unrelated to each other and to their boxes" in {
+    for {
+      a <- Primitives
+      b <- Primitives
+    } {
+      a <:< b shouldBe (a eq b)
+      a =:= b shouldBe (a eq b)
+    }
+    Type[Int] <:< Type[Long] shouldBe false
+    assertTypeError("implicitly[Int <:< Long]")
+    Type[Int] <:< Type[Integer] shouldBe false
+    assertTypeError("implicitly[Int <:< Integer]")
   }
 
-  "=:=" should "work for a primitive type" in {
-    implicitly[Type[Int]] =:= implicitly[Type[Int]] shouldBe true
-
-    implicitly[Type[Int]] =:= implicitly[Type[Any]] shouldBe false
-    implicitly[Type[Int]] =:= implicitly[Type[AnyVal]] shouldBe false
-    implicitly[Type[Int]] =:= implicitly[Type[AnyRef]] shouldBe false
-    implicitly[Type[Int]] =:= implicitly[Type[Integer]] shouldBe false
-    implicitly[Type[Integer]] =:= implicitly[Type[Int]] shouldBe false
+  "Null" should "be below everything that is not an AnyVal" in {
+    Type[Null] <:< Type[Int] shouldBe false
+    assertTypeError("implicitly[Null <:< Int]")
+    Type[Null] <:< TypeValClass shouldBe false
+    assertTypeError("implicitly[Null <:< ValClass]")
+    Type[Null] <:< Type[AnyVal] shouldBe false
+    assertTypeError("implicitly[Null <:< AnyVal]")
+    Type[Null] <:< TypeUniversalTrait shouldBe true
+    assertCompiles("implicitly[Null <:< UniversalTrait]")
+    Type[Null] <:< Type[String] shouldBe true
+    assertCompiles("implicitly[Null <:< String]")
+    Type[Null] <:< Type[Null] shouldBe true
+    assertCompiles("implicitly[Null <:< Null]")
+    Type[Null] <:< Type[Nothing] shouldBe false
+    assertTypeError("implicitly[Null <:< Nothing]")
+    Type[String] <:< Type[Null] shouldBe false
+    assertTypeError("implicitly[String <:< Null]")
   }
 
-  it should "work for a plain reference type" in {
-    implicitly[Type[String]] =:= implicitly[Type[String]] shouldBe true
-
-    implicitly[Type[String]] =:= implicitly[Type[AnyVal]] shouldBe false
-    implicitly[Type[String]] =:= implicitly[Type[AnyRef]] shouldBe false
-    implicitly[Type[String]] =:= implicitly[Type[CharSequence]] shouldBe false
-    implicitly[Type[String]] =:= implicitly[Type[Nothing]] shouldBe false
-    implicitly[Type[CharSequence]] =:= implicitly[Type[String]] shouldBe false
+  "Nothing" should "be below everything, Null included" in {
+    for (t <- TypeUniversalTrait :: TypeValClass :: Type[Null] :: Type[Nothing] :: Primitives)
+      Type[Nothing] <:< t shouldBe true
+    assertCompiles("implicitly[Nothing <:< Null]")
+    Type[Int] <:< Type[Nothing] shouldBe false
+    assertTypeError("implicitly[Int <:< Nothing]")
   }
 
-  it should "work for a reference type with invariant type parameters" in {
-    implicitly[Type[ju.List[String]]] =:= implicitly[Type[ju.Collection[CharSequence]]] shouldBe false
-    implicitly[Type[ju.List[String]]] =:= implicitly[Type[ju.Collection[String]]] shouldBe false
-    implicitly[Type[ju.List[String]]] =:= implicitly[Type[ju.Collection[Nothing]]] shouldBe false
-    implicitly[Type[ju.List[CharSequence]]] =:= implicitly[Type[ju.Collection[String]]] shouldBe false
-
-    implicitly[Type[ju.List[String]]] =:= implicitly[Type[ju.List[CharSequence]]] shouldBe false
-    implicitly[Type[ju.List[String]]] =:= implicitly[Type[ju.List[String]]] shouldBe true
-    implicitly[Type[ju.List[String]]] =:= implicitly[Type[ju.List[Nothing]]] shouldBe false
-    implicitly[Type[ju.List[CharSequence]]] =:= implicitly[Type[ju.List[String]]] shouldBe false
-
-    implicitly[Type[ju.List[String]]] =:= implicitly[Type[ju.ArrayList[CharSequence]]] shouldBe false
-    implicitly[Type[ju.List[String]]] =:= implicitly[Type[ju.ArrayList[String]]] shouldBe false
-    implicitly[Type[ju.List[String]]] =:= implicitly[Type[ju.ArrayList[Nothing]]] shouldBe false
-    implicitly[Type[ju.List[CharSequence]]] =:= implicitly[Type[ju.ArrayList[String]]] shouldBe false
+  "Type arguments" should "be compared by the same rules, with variance" in {
+    Type[List[Int]] <:< Type[List[AnyRef]] shouldBe false
+    assertTypeError("implicitly[List[Int] <:< List[AnyRef]]")
+    Type[List[ValClass]] <:< Type[List[AnyRef]] shouldBe false
+    assertTypeError("implicitly[List[ValClass] <:< List[AnyRef]]")
+    Type[Option[UniversalTrait]] <:< Type[Option[AnyRef]] shouldBe false
+    assertTypeError("implicitly[Option[UniversalTrait] <:< Option[AnyRef]]")
+    Type[List[Null]] <:< Type[List[Int]] shouldBe false
+    assertTypeError("implicitly[List[Null] <:< List[Int]]")
+    Type[List[Null]] <:< Type[List[String]] shouldBe true
+    assertCompiles("implicitly[List[Null] <:< List[String]]")
+    Type[Contra[Any]] <:< Type[Contra[Int]] shouldBe true
+    assertCompiles("implicitly[Contra[Any] <:< Contra[Int]]")
+    Type[Contra[Int]] <:< Type[Contra[Any]] shouldBe false
+    assertTypeError("implicitly[Contra[Int] <:< Contra[Any]]")
+    Type[In[Int]] <:< Type[In[Any]] shouldBe false
+    assertTypeError("implicitly[In[Int] <:< In[Any]]")
+    Type[In[AnyRef]] =:= Type[In[Object]] shouldBe true
+    assertCompiles("implicitly[In[AnyRef] =:= In[Object]]")
   }
 
-  it should "work for a reference type with covariant type parameters" in {
-    implicitly[Type[Seq[String]]] =:= implicitly[Type[Iterable[CharSequence]]] shouldBe false
-    implicitly[Type[Seq[String]]] =:= implicitly[Type[Iterable[String]]] shouldBe false
-    implicitly[Type[Seq[String]]] =:= implicitly[Type[Iterable[Nothing]]] shouldBe false
-    implicitly[Type[Seq[CharSequence]]] =:= implicitly[Type[Iterable[String]]] shouldBe false
-
-    implicitly[Type[Seq[String]]] =:= implicitly[Type[Seq[CharSequence]]] shouldBe false
-    implicitly[Type[Seq[String]]] =:= implicitly[Type[Seq[String]]] shouldBe true
-    implicitly[Type[Seq[String]]] =:= implicitly[Type[Seq[Nothing]]] shouldBe false
-    implicitly[Type[Seq[CharSequence]]] =:= implicitly[Type[Seq[String]]] shouldBe false
-
-    implicitly[Type[Seq[String]]] =:= implicitly[Type[List[CharSequence]]] shouldBe false
-    implicitly[Type[Seq[String]]] =:= implicitly[Type[List[String]]] shouldBe false
-    implicitly[Type[Seq[String]]] =:= implicitly[Type[List[Nothing]]] shouldBe false
-    implicitly[Type[Seq[CharSequence]]] =:= implicitly[Type[List[String]]] shouldBe false
+  "Stage" should "compare its input contravariantly" in {
+    Type[Stage[AnyRef, Int, Nothing]] <:< Type[Stage[Int, Int, Nothing]] shouldBe false
+    assertTypeError("implicitly[Stage[AnyRef, Int, Nothing] <:< Stage[Int, Int, Nothing]]")
+    Type[Stage[Any, Int, Nothing]] <:< Type[Stage[String, Int, Nothing]] shouldBe true
+    assertCompiles("implicitly[Stage[Any, Int, Nothing] <:< Stage[String, Int, Nothing]]")
   }
 
-  it should "work for a reference type with contravariant type parameters" in {
-    implicitly[Type[PartialFunction[String, Unit]]] =:= implicitly[Type[CharSequence => Unit]] shouldBe false
-    implicitly[Type[PartialFunction[String, Unit]]] =:= implicitly[Type[String => Unit]] shouldBe false
-    implicitly[Type[PartialFunction[String, Unit]]] =:= implicitly[Type[Nothing => Unit]] shouldBe false
-    implicitly[Type[PartialFunction[CharSequence, Unit]]] =:= implicitly[Type[String => Unit]] shouldBe false
-
-    implicitly[Type[PartialFunction[String, Unit]]] =:=
-      implicitly[Type[PartialFunction[CharSequence, Unit]]] shouldBe false
-    implicitly[Type[PartialFunction[String, Unit]]] =:= implicitly[Type[PartialFunction[String, Unit]]] shouldBe true
-    implicitly[Type[PartialFunction[String, Unit]]] =:= implicitly[Type[PartialFunction[Nothing, Unit]]] shouldBe false
-    implicitly[Type[PartialFunction[CharSequence, Unit]]] =:=
-      implicitly[Type[PartialFunction[String, Unit]]] shouldBe false
-
-    implicitly[Type[String => Unit]] =:= implicitly[Type[PartialFunction[CharSequence, Unit]]] shouldBe false
-    implicitly[Type[String => Unit]] =:= implicitly[Type[PartialFunction[String, Unit]]] shouldBe false
-    implicitly[Type[String => Unit]] =:= implicitly[Type[PartialFunction[Nothing, Unit]]] shouldBe false
-    implicitly[Type[CharSequence => Unit]] =:= implicitly[Type[PartialFunction[String, Unit]]] shouldBe false
+  "Base types" should "carry substituted arguments" in {
+    Type[List[Int]] <:< Type[Seq[Any]] shouldBe true
+    assertCompiles("implicitly[List[Int] <:< Seq[Any]]")
+    Type[List[String]] <:< Type[PartialFunction[Int, CharSequence]] shouldBe true
+    assertCompiles("implicitly[List[String] <:< PartialFunction[Int, CharSequence]]")
+    Type[List[Int]] <:< Type[Set[Int]] shouldBe false
+    assertTypeError("implicitly[List[Int] <:< Set[Int]]")
+    Type[SelfRef] <:< Type[Comparable[SelfRef]] shouldBe true
+    assertCompiles("implicitly[SelfRef <:< Comparable[SelfRef]]")
+    Type[CoTwice] <:< Type[Co[Int]] shouldBe true
+    assertCompiles("implicitly[CoTwice <:< Co[Int]]")
+    Type[NullBase] <:< Type[Co[String]] shouldBe true
+    assertCompiles("implicitly[NullBase <:< Co[String]]")
+    Type[NullBase] <:< Type[Co[Int]] shouldBe false
+    assertTypeError("implicitly[NullBase <:< Co[Int]]")
+    Type[Nest[String]] <:< Type[Co[Seq[CharSequence]]] shouldBe true
+    assertCompiles("implicitly[Nest[String] <:< Co[Seq[CharSequence]]]")
+    Type[Nest[String]] <:< Type[Co[Seq[Int]]] shouldBe false
+    assertTypeError("implicitly[Nest[String] <:< Co[Seq[Int]]]")
+    Type[None.type] <:< Type[Option[Int]] shouldBe true
+    assertCompiles("implicitly[None.type <:< Option[Int]]")
+    Type[java.util.ArrayList[String]] <:< Type[java.util.List[String]] shouldBe true
+    assertCompiles("implicitly[java.util.ArrayList[String] <:< java.util.List[String]]")
+    Type[java.util.ArrayList[String]] <:< Type[java.util.List[CharSequence]] shouldBe false
+    assertTypeError("implicitly[java.util.ArrayList[String] <:< java.util.List[CharSequence]]")
   }
 
-  "hashCode" should "return the same value for equal types" in {
-    implicitly[Type[Any]].hashCode shouldBe implicitly[Type[Any]].hashCode
-    implicitly[Type[String]].hashCode shouldBe implicitly[Type[String]].hashCode
-    implicitly[Type[List[AnyRef]]].hashCode shouldBe implicitly[Type[List[AnyRef]]].hashCode
+  "Aliases" should "be dealiased" in {
+    type IntList = List[Int]
+    Type[IntList] =:= Type[scala.collection.immutable.List[Int]] shouldBe true
+    assertCompiles("implicitly[IntList =:= scala.collection.immutable.List[Int]]")
   }
 
-  "equals" should "should compare underlying objects" in {
-    implicitly[Type[Any]] == implicitly[Type[Any]] shouldBe true
-    implicitly[Type[Int]] == implicitly[Type[Int]] shouldBe true
-    implicitly[Type[String]] == implicitly[Type[String]] shouldBe true
-    implicitly[Type[List[AnyRef]]] == implicitly[Type[List[AnyRef]]] shouldBe true
-    implicitly[Type[List[AnyRef]]] == implicitly[Type[List[String]]] shouldBe false
-    implicitly[Type[List[String]]] == implicitly[Type[List[String]]] shouldBe true
-    implicitly[Type[List[String]]] == implicitly[Type[Seq[String]]] shouldBe false
-    implicitly[Type[List[AnyRef]]] == implicitly[Type[PartialFunction[String, Unit]]] shouldBe false
-    implicitly[Type[AnyRef]] == new Object() shouldBe false
+  "Classes nested in objects" should "be supported" in {
+    Type[Holder.Nested] <:< Type[AnyRef] shouldBe true
+    assertCompiles("implicitly[Holder.Nested <:< AnyRef]")
   }
 
-//  "toString" should "return the type name" in {
-//    implicitly[Type[Any]].toString shouldBe "Any"
-//    implicitly[Type[AnyVal]].toString shouldBe "AnyVal"
-//    implicitly[Type[AnyRef]].toString shouldBe "AnyRef"
-//    implicitly[Type[Object]].toString shouldBe "AnyRef"
-//    implicitly[Type[Int]].toString shouldBe "Int"
-//    implicitly[Type[String]].toString shouldBe "java.lang.String"
-//    implicitly[Type[Integer]].toString shouldBe "Integer"
-//    implicitly[Type[List[Int]]].toString shouldBe "List[+Int]"
-//    implicitly[Type[List[Integer]]].toString shouldBe "List[+Integer]"
-//    implicitly[Type[Integer => String]].toString shouldBe "Function1[-Integer, +String]"
-//    implicitly[Type[(java.lang.Long, java.time.Instant)]].toString shouldBe "Tuple2[+Long, +java.time.Instant]"
-//  }
+  "Annotations" should "be dropped" in {
+    Type[Int @TypeAnnotation] =:= Type[Int] shouldBe true
+    assertCompiles("implicitly[(Int @TypeAnnotation) =:= Int]")
+  }
+
+  "toString" should "show the type" in {
+    Type[Map[String, Int]].toString shouldBe "scala.collection.immutable.Map[java.lang.String, scala.Int]"
+    Type[Nothing].toString shouldBe "Nothing"
+    Type[Null].toString shouldBe "Null"
+  }
+
+  "Types outside the subset" should "be compile errors" in {
+    assertTypeError("Type[RefTrait { def x: Int }]")
+    assertTypeError("Type[1]")
+    assertTypeError("def f[A]: Type[List[A]] = Type[List[A]]")
+    assertTypeError("class Local; Type[Local]")
+    assertTypeError("class Outer { class Inner }; Type[Outer#Inner]")
+    assertTypeError("Type[Fix[List]]")
+    assertTypeError("Type[Fix[Option]]")
+    assertTypeError("Type[java.util.List[?]]")
+  }
 }
