@@ -1,6 +1,7 @@
 # Runtime types: what reflect should become
 
-Status: **direction decided (B), API agreed, not implemented.** Written 2026-11-25.
+Status: **direction decided (B), API agreed, first implementation in place** (2026-11-27, see
+"Results of the sketch"). Written 2026-11-25.
 
 ## The goal
 
@@ -161,8 +162,8 @@ B's remaining work is mostly storing base types ourselves.
    and universal traits extend `Any`, not `Matchable`. `-Yexplicit-nulls` (not enabled now) takes
    `Null` out from under `AnyRef`; write the Null rule so it does not have to be rewritten later.
 3. **Two macro implementations, and the 100% coverage gate.** Macro code runs while the tests
-   compile, not while they run. Whether scoverage counts it as uncovered is **unverified**; if it
-   does, exclude the macro package or test the classification logic apart from the macro glue.
+   compile, not while they run. Resolved: scoverage records it there, so it is covered by the tests
+   that compile it (see "Results of the sketch").
 4. **Aliases.** `DataFrame` is `Dataset[Row]`. Dealiased comparison is right, but error messages
    will show `Dataset[Row]`.
 5. **`Unlift` checks `in <:< Option[?]`.** Better: `in.baseType(OptionK)`, returning `Option[T]` or
@@ -332,22 +333,56 @@ The existing code may be dropped entirely; nothing of the current `Type` has to 
   AGENTS.md forbids dependency changes as a side effect, so it has to be stated in the PR.
 - **AGENTS.md gets a description of the new code in the same PR.** The description of the old
   `Type` was removed ahead of the rewrite; the izumi findings moved here ("What izumi gets wrong").
-- **Unverified:** what `+coverageSummaryCheck` does on a module with no statements (0 of 0); it
-  may fail or report NaN. Matters only if the code is ever deleted without a replacement.
 
-## Next step, when this is picked up
+## Results of the sketch (2026-11-27)
 
-A sketch on 2.13 and 3.9: implicit macros producing `Type[Stage[-I, O, +E]]` with base types,
-`Kind1[Option]` and `Kind2[Tuple2]`, and the comparison. Check:
+Implemented on 2.13 and 3.9 as described above; `izumi-reflect` is gone. Every item of the former
+"Next step" holds, each runtime answer checked against the compiler's in the tests:
 
-- `Stage[AnyRef, Int] <: Stage[Int, Int]` is `false`; `Stage[Any, Int] <: Stage[String, Int]` is `true`;
-- `OptionK.unapply(Type[Some[Int]])` gives `Int`; `OptionK.unapply(Type[List[Int]])` gives nothing;
-- `Kind2[Tuple2].apply(Type[Int], Type[String]) =:= Type[(Int, String)]`;
-- `OptionK.unapply` on `Type[Nothing]` and `Type[Null]` gives `Nothing`; `Kind3[Stage]` on them
-  gives `(Any, Nothing, Nothing)`;
-- on 3, a class whose base type comes out as `CBox[Int | String]` is a compile error;
-- what scoverage reports for the macro code;
-- the generated code size for `List[Int]`.
+- `Stage[AnyRef, Int, Nothing] <: Stage[Int, Int, Nothing]` is `false`;
+  `Stage[Any, Int, Nothing] <: Stage[String, Int, Nothing]` is `true`. (`Stage` has three
+  parameters; the two-argument forms used earlier in this document were shorthand.)
+- `Kind1[Option].unapply` gives `Int` for `Some[Int]`, `Nothing` for `None.type`, nothing for
+  `List[Int]`. `Kind2[Tuple2].apply(Type[Int], Type[String]) =:= Type[(Int, String)]`.
+- On `Nothing` and `Null`, `Kind1[Option].unapply` gives `Nothing` and `Kind3[Stage]` gives
+  `(Any, Nothing, Nothing)`; on `Null` an AnyVal constructor (`ValBox[A] extends AnyVal`) gives
+  nothing, since `Null <: ValBox[X]` is false for every `X`.
+- On 3, a class whose base type is `CBox[Int | String]` is a compile error, naming the base type.
+
+What was found on the way:
+
+- **scoverage measures macro code.** The macros run in the compiler while the tests compile, and the
+  instrumented macro classes record their statements there like any other code. No exclusion is
+  needed; branches that end in a compile error are covered by `assertTypeError` snippets. Branches
+  that no input reaches showed up as uncovered and were removed: on 3 a type constructor always
+  arrives eta-expanded (`[A] =>> Option[A]`, never a bare `Option`), `AppliedType` is always fully
+  applied, and `dealias` drops annotations on both versions. One gap: on 2.13 scoverage's default
+  `excludedSymbols` leave out everything typed `Tree`, so the entry points `tpe` and `kind` are not
+  measured there; the `Encoder`, where the classification happens, is.
+- **Bounded and higher-kinded holes need no check of their own.** Both compilers refuse
+  `Kind1[Bounded]` (`Bounded[A <: AnyRef]`) and `Kind1[Fix]` (`Fix[F[_]]`) as arguments for
+  `F[_]` before the macro runs.
+- **Base types only need class names at their head.** `<:<` lifts the left side to the right side's
+  class and compares arguments with the right side's variances, so a base type stores the class
+  name and its arguments; only argument classes carry a full description. Base types whose class
+  has higher-kinded parameters (`IterableOps[A, List, List[A]]`) are dropped: no `Type` can name
+  them, so they can never be the right side. A base type outside the subset in any other way is a
+  compile error, since it could be.
+- **Objects are supported** as the class of their single instance (`None.type <: Option[Int]`).
+  On 2.13 an object's name gets a `.type` suffix, since it shares its full name with its companion
+  class; on 3 the module class name (`None$`) is distinct already.
+- **Generated code size.** For `Type[List[Int]]` the table has two classes (`List` with about 20 base
+  types, `Int` with its 2 or 3) and costs about 3 KB of bytecode over an empty object on 2.13 and
+  about 4 KB on 3.9; `Type[Int]` about 1.3 KB and 1.8 KB, `Kind1[Option]` about 1.9 KB and 2.5 KB.
+  Fine for a sketch; no caching yet. If Xi summons many types, the next step is a string encoding
+  decoded once per class (what izumi does).
+- On 3.9, `List`'s base classes include `scala.caps.Pure`, from the capture-checked library.
+
+Still open:
+
+- **Spark serialization** (item 6 under "Where B costs"): `Type` and `Kind` are not `Serializable`.
+  Depends on where Xi keeps `StageSpec`.
+- **Caching** of class descriptions across call sites, see the code size above.
 
 ## Appendix: probes
 

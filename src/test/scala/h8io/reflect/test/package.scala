@@ -1,8 +1,9 @@
 package h8io.reflect
 
 package object test {
-  val Primitives: List[Primitive[?, ?]] =
-    List(TypeBoolean, TypeByte, TypeShort, TypeInt, TypeLong, TypeFloat, TypeDouble, TypeChar, TypeUnit)
+  val Primitives: List[Type[?]] =
+    List(
+      Type[Boolean], Type[Byte], Type[Short], Type[Int], Type[Long], Type[Float], Type[Double], Type[Char], Type[Unit])
 
   val TypeUniversalTrait: Type[UniversalTrait] = implicitly
 

@@ -87,5 +87,12 @@ val root = (project in file("."))
   .enablePlugins(ScoverageSummaryPlugin)
   .settings(
     name := ProjectName,
-    libraryDependencies += IzumiReflect
+    // The Scala 2 macros need the compiler's reflection API, which the compiler brings along wherever they expand
+    libraryDependencies ++= {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, 13)) => Seq("org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided)
+        case Some((3, 9)) => Nil
+        case _ => unsupportedScala(scalaVersion.value)
+      }
+    }
   )
