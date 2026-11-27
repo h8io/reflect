@@ -274,16 +274,56 @@ No deviations in either direction, at any depth.
 Consequence: **`Null <: universal trait` is `true`**, since both compilers accept
 `val x: UniversalParentTrait = null`. The old `TypeNull` answer (`false`) is dropped with the old code.
 
-## Open decisions (Eshu's)
+**`Matchable` is exposed on Scala 3** (decided 2026-11-27). Hiding it by mapping it to `Any` would
+break the rule (`UniversalTrait <: Matchable` would come out `true`, Scala 3 says `false`). On 3,
+`Type[Matchable]` is a real type between `Any` and `AnyVal`/`AnyRef`; on 2.13 it does not exist.
 
-- **`Matchable` on Scala 3:** hiding it by mapping it to `Any` breaks the rule above
-  (`UniversalTrait <: Matchable` would come out `true`, Scala 3 says `false`). What remains: expose
-  it on 3, or make `Type[Matchable]` a compile error.
-- **`unapply` on the bottom types.** `Nothing <: Option[X]` holds for every `X`, and
-  `Null <: Option[X]` too (`Option` is an AnyRef), but neither has a base type `Option[…]` to take
-  apart. Proposal: `OptionK.unapply(Nothing)` is `Some(Nothing)`, consistent with `Option[Nothing]`,
-  so that `Unlift` outputs `Nothing`, which is sound. `OptionK.unapply(Null)` is `None`, since `null` is
-  not an `Option` and there is nothing to take apart.
+## `unapply` (decided 2026-11-27)
+
+**Ordinary types:** `KindN[F].unapply(t)` takes the base type of `t` with constructor `F`, as the
+compiler computes it, and returns its arguments: `Some[Int]` → `Option[Int]` → `Int`,
+`None.type` → `Option[Nothing]` → `Nothing`, `List[Int]` → nothing.
+
+**Bottom types.** `Nothing <: F[X]` and `Null <: F[X]` (for an AnyRef `F`) hold for every `X`, so
+there is no base type to take apart. `unapply` returns the arguments that make `F[args]` the least
+type: `Nothing` for a covariant hole, `Any` for a contravariant one, and by convention `Nothing` for
+an invariant one, which has no least (`In[Nothing]` and `In[Any]` are unrelated). `Null` and
+`Nothing` get the same answer: `OptionK.unapply(Null)` is `Some(Nothing)`, so `Unlift` on `null`
+outputs `Nothing`, which is sound, since it never returns normally. `Kind3[Stage]` on either gives
+`(Any, Nothing, Nothing)`. The answer satisfies the rule (`t <: F[args]` holds), is the same on both
+versions, and `Nothing` in an output glues to any next stage.
+
+"Whatever the compiler infers" was considered and rejected: inference depends on the call site,
+not on `t`, and differs between versions. Measured for an unconstrained parameter (input `Nothing`
+or `null`, same answers):
+
+| Signature | 2.13 | 3.9 |
+|---|---|---|
+| `f[A](x: Co[A]): Unit` | `Nothing` | `Any` |
+| `f[A](x: In[A]): Unit` | `Nothing` | `Any` |
+| `f[A](x: Contra[A]): Unit` | `Any` | `Any` |
+| `f[A](x: Contra[A]): A` | `Any` | `Nothing` |
+| `unlift[A](x: Option[A]): A` | `Nothing` | `Nothing` |
+| `stO[I, O, E](x: St[I, O, E]): O` | `Any, Nothing, Nothing` | `Any, Nothing, Any` |
+
+2.13 always picks `Nothing` for co- and invariant parameters and `Any` for contravariant ones; 3.9
+goes by the variance in the result type, and picks `Any` when the parameter does not occur there.
+
+**Two instances of one generic ancestor.** Both versions allow a class to inherit, say, `Box[Any]`
+and `Box[Int]` for a variant parameter; neither allows it for an invariant one. Measured base types:
+
+| Ancestors | 2.13 | 3.9 |
+|---|---|---|
+| `Box[+T]`: `Box[Any]`, `Box[Int]` | `Box[Int]` | `Box[Int]` |
+| `CBox[-T]`: `CBox[Int]`, `CBox[Any]` | `CBox[Any]` | `CBox[Any]` |
+| `CBox[-T]`: `CBox[Int]`, `CBox[String]` | illegal inheritance | `CBox[Int \| String]` |
+
+2.13 accepts it only when one instance conforms to the other and keeps the narrower; 3.9 always
+accepts it and merges the arguments (intersection for covariant, union for contravariant). The
+macro takes the compiler's `baseType` as it is. If that lies in the supported subset, it is used,
+and both versions agree; if it is a union or intersection (possible only on 3), it is a compile
+error like any other type outside the subset. No separate check is needed.
+
 ## Rewrite from scratch (decided 2026-11-25)
 
 The existing code may be dropped entirely; nothing of the current `Type` has to survive.
@@ -312,6 +352,9 @@ A sketch on 2.13 and 3.9: implicit macros producing `Type[Stage[-I, O, +E]]` wit
 - `Stage[AnyRef, Int] <: Stage[Int, Int]` is `false`; `Stage[Any, Int] <: Stage[String, Int]` is `true`;
 - `OptionK.unapply(Type[Some[Int]])` gives `Int`; `OptionK.unapply(Type[List[Int]])` gives nothing;
 - `Kind2[Tuple2].apply(Type[Int], Type[String]) =:= Type[(Int, String)]`;
+- `OptionK.unapply` on `Type[Nothing]` and `Type[Null]` gives `Nothing`; `Kind3[Stage]` on them
+  gives `(Any, Nothing, Nothing)`;
+- on 3, a class whose base type comes out as `CBox[Int | String]` is a compile error;
 - what scoverage reports for the macro code;
 - the generated code size for `List[Int]`.
 
