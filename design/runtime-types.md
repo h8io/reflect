@@ -114,15 +114,6 @@ classification. Because izumi says `Nothing <: AnyVal`, a naive classifier puts 
 AnyVal branch, and the cross-branch shortcut then answers `Nothing <: String` = `false`. That is the
 reason `TypeNothing` exists already.
 
-Proposed answer, if izumi stays: **canonicalise at construction.** Any `Type` made from a tag,
-`combine` included, is first checked with `=:=` against `Nothing`, `Null`, `Any`, `AnyVal`, `AnyRef`
-and the nine primitives, and becomes the singleton on a match. Only then is it classified through
-`<:< AnyVal`. That keeps the singletons' table and their `eq` sound, and costs up to 14 `=:=` per
-construction (a name check first can short-circuit that).
-
-The `typeNothing` implicit stays necessary only while the implicits are split by upper bound. A
-single `implicit def tpe[T: Tag]` should not be ambiguous for `Nothing`. **Unverified.**
-
 ## Implicit macros
 
 An implicit can be a macro on both versions; izumi's `Tag` is one.
